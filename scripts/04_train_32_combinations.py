@@ -14,7 +14,7 @@ from src.pruning import (
 )
 
 
-WORD2VEC_VARIANTS = ("W1", "W2", "W3", "W4")
+WORD2VEC_CODE = "W1"
 HEAD_ARCHITECTURES = {
     "H1": {"full": (128,), "direct": (64,)},
     "H2": {"full": (128, 64), "direct": (64, 64)},
@@ -66,7 +66,7 @@ def record_training_history(
         )
 
 
-for word2vec_code in WORD2VEC_VARIANTS:
+for word2vec_code in (WORD2VEC_CODE,):
     train_vectors = torch.load(
         f"artifacts/train_vectors_{word2vec_code}.pt", weights_only=True
     )

@@ -1,6 +1,6 @@
 # Compression de Modèles NLP : Word2Vec & Classifieurs de Sentiment
 
-Ce projet explore et compare différentes stratégies de compression de modèles de traitement automatique du langage naturel (NLP). Il applique notamment la méthode d'élagage de second ordre Optimal Brain Damage (OBD) à la fois de manière structurée sur les dimensions d'un modèle Word2Vec (CBOW) et de manière non structurée sur des têtes de classification (Sentiment Heads).
+Ce projet explore et compare différentes stratégies de compression de modèles de traitement automatique du langage naturel (NLP). Il utilise un unique Word2Vec (CBOW) non élagué et applique la méthode Optimal Brain Damage (OBD) aux têtes de classification de sentiment.
 
 ---
 
@@ -63,10 +63,10 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
    # Étape 2 : Entraînement du tokenizer et encodage du corpus
    python scripts/02_tokenize.py
 
-   # Étape 3 : Entraînement Word2Vec & Pruning CBOW (W1 à W4)
+   # Étape 3 : Entraînement du Word2Vec W1
    python scripts/03_train_word2vec_variants.py
 
-   # Étape 4 : Entraînement et élagage des classifieurs (32 combinaisons M1 à M4)
+   # Étape 4 : Entraînement et élagage des classifieurs avec W1 (M1 à M4)
    python scripts/04_train_32_combinations.py
 
    # Étape 5 : Génération des graphiques et courbes de performance
@@ -77,10 +77,7 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
 ## Variantes & Modèles Évalués
 
 ### Word2Vec (CBOW)
-- W1 : Modèle complet d'origine (dim = 200).
-- W2 : Modèle élagué via OBD (dim = 56, sans réentraînement).
-- W3 : Modèle élagué via OBD (dim = 56, avec réentraînement/cicatrisation).
-- W4 : Modèle directement entraîné avec la dimension finale (dim = 56).
+- W1 : unique modèle complet partagé par toutes les expériences (dim = 200).
 
 ### Têtes de classification (Sentiment Heads)
 - M1 : Architecture complète de référence.

@@ -200,12 +200,21 @@ def plot_roc_curves(
     head: str,
     output_path: str | Path,
 ) -> None:
-    """Trace les courbes ROC des quatre têtes pour chaque Word2Vec."""
-    word2vec_variants = ("W1", "W2", "W3", "W4")
+    """Trace les courbes ROC pour chaque variante Word2Vec fournie."""
+    word2vec_variants = tuple(
+        sorted({word2vec for word2vec, _ in roc_curves})
+    )
     model_variants = ("M1", "M2", "M3", "M4")
-    figure, axes = plt.subplots(2, 2, figsize=(12, 10), sharex=True, sharey=True)
+    figure, axes = plt.subplots(
+        1,
+        len(word2vec_variants),
+        figsize=(6 * len(word2vec_variants), 5),
+        sharex=True,
+        sharey=True,
+        squeeze=False,
+    )
 
-    for axis, word2vec in zip(axes.flat, word2vec_variants):
+    for axis, word2vec in zip(axes[0], word2vec_variants):
         for model in model_variants:
             key = (word2vec, model)
             if key not in roc_curves:

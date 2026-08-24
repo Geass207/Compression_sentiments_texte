@@ -13,28 +13,19 @@ from src.visualization import (
     plot_classifier_pruning_trajectory,
     plot_roc_curves,
     plot_training_losses,
-    plot_word2vec_pruning_trajectory,
 )
 
 # Chargement des artefacts de résultats
 results = pd.read_csv("artifacts/classification_results.csv")
 training_history = pd.read_csv("artifacts/classifier_training_history.csv")
 classifier_pruning = pd.read_csv("artifacts/classifier_pruning_metrics.csv")
-w2v_pruning = pd.read_csv("artifacts/word2vec_pruning_metrics.csv")
-
 test = pd.read_pickle("artifacts/test_encoded.pkl")
 test_labels = test["sentiment"].to_numpy()
 
 figures_dir = Path("figures")
 figures_dir.mkdir(exist_ok=True)
 
-# 1. Visualisation de la réduction Word2Vec
-plot_word2vec_pruning_trajectory(
-    w2v_pruning,
-    figures_dir / "word2vec_pruning_trajectory.png",
-)
-
-# 2. Visualisations par tête de classification (H1 et H2)
+# Visualisations par tête de classification (H1 et H2)
 for head in ("H1", "H2"):
     # Courbes d'entraînement
     plot_training_losses(
@@ -60,7 +51,7 @@ for head in ("H1", "H2"):
 
     # Calcul et tracé des courbes ROC
     roc_curves = {}
-    for word2vec in ("W1", "W2", "W3", "W4"):
+    for word2vec in ("W1",):
         test_vectors = torch.load(
             f"artifacts/test_vectors_{word2vec}.pt",
             weights_only=True,
