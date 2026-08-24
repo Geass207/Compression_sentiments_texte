@@ -5,12 +5,26 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 
-def make_cbow_pairs(token_ids: list[int], window_size: int = 2) -> list[tuple[list[int], int]]:
+def make_cbow_pairs(
+    token_ids: list[int], window_size: int = 2, unk_token_id: int = 1
+) -> list[tuple[list[int], int]]:
+    """Crée un exemple CBOW pour chaque token, bords inclus.
+
+    Les positions de contexte absentes au début ou à la fin d'une séquence sont
+    complétées avec le token ``<UNK>`` (d'identifiant 1 par défaut).
+    """
     pairs = []
 
-    for i in range(window_size, len(token_ids) - window_size):
-        context = token_ids[i - window_size:i] + token_ids[i + 1:i + window_size + 1]
-        pairs.append((context, token_ids[i]))
+    for i, target in enumerate(token_ids):
+        left_context = token_ids[max(0, i - window_size):i]
+        right_context = token_ids[i + 1:i + window_size + 1]
+        context = (
+            [unk_token_id] * (window_size - len(left_context))
+            + left_context
+            + right_context
+            + [unk_token_id] * (window_size - len(right_context))
+        )
+        pairs.append((context, target))
 
     return pairs
 
