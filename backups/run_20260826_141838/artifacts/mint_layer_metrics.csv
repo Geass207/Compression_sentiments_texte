@@ -1,0 +1,4 @@
+layer,output_units,input_units,groups,blocks,mean_score,minimum_score,maximum_score,mean_pruned_score,active_weights,total_weights,weight_sparsity,scoring_seconds
+hidden_layers.0.weight,128,200,2,256,0.22509765625,0.0,0.75,0.0,23100,25600,0.09765625,0.7984185360037372
+hidden_layers.1.weight,64,128,2,128,0.2138671875,0.0,0.625,0.0,7424,8192,0.09375,0.36045144899981096
+output_layer.weight,1,64,2,2,0.1875,0.0,0.375,,64,64,0.0,0.007053696004732046

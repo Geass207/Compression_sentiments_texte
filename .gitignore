@@ -18,3 +18,27 @@ env/
 
 # Système
 .DS_Store
+
+# Fichiers temporaires LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.log
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+# Documentation MINT locale
+/explication_mint.tex
+/explication_mint.pdf
+
+/token.md
