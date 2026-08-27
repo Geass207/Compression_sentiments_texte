@@ -204,7 +204,11 @@ def plot_roc_curves(
     word2vec_variants = tuple(
         sorted({word2vec for word2vec, _ in roc_curves})
     )
-    model_variants = ("M1", "M2", "M3", "M4")
+    available_models = {model for _, model in roc_curves}
+    preferred_order = ("M1", "M2", "M3", "M4", "MINT-M2", "MINT-M3")
+    model_variants = tuple(
+        model for model in preferred_order if model in available_models
+    ) + tuple(sorted(available_models.difference(preferred_order)))
     figure, axes = plt.subplots(
         1,
         len(word2vec_variants),
@@ -232,4 +236,153 @@ def plot_roc_curves(
         axis.legend(loc="lower right")
 
     figure.suptitle(f"Courbes ROC sur le jeu de test — {head}")
+    _save_figure(figure, output_path)
+
+
+def plot_mint_score_distributions(
+    scores: pd.DataFrame,
+    output_path: str | Path,
+) -> None:
+    """Compare les scores MINT conservés et prunés dans chaque couche."""
+    required_columns = {"layer", "score", "pruned"}
+    missing_columns = required_columns.difference(scores.columns)
+    if missing_columns:
+        raise ValueError(
+            "Colonnes MINT manquantes: " + ", ".join(sorted(missing_columns))
+        )
+
+    layers = list(dict.fromkeys(scores["layer"]))
+    figure, axes = plt.subplots(
+        1,
+        len(layers),
+        figsize=(6 * len(layers), 5),
+        sharey=True,
+        squeeze=False,
+    )
+    labels = {False: "Conservé", True: "Pruné"}
+    data = scores.copy()
+    data["decision"] = data["pruned"].map(labels)
+
+    for axis, layer in zip(axes[0], layers):
+        sns.histplot(
+            data=data[data["layer"] == layer],
+            x="score",
+            hue="decision",
+            bins=20,
+            stat="density",
+            common_norm=False,
+            element="step",
+            ax=axis,
+        )
+        axis.set_title(layer)
+        axis.set_xlabel("Score GMI conditionnel")
+        axis.set_ylabel("Densité")
+
+    figure.suptitle("Distribution des scores MINT — W1/H2")
+    _save_figure(figure, output_path)
+
+
+def plot_mint_summary(
+    results: pd.DataFrame,
+    history: pd.DataFrame,
+    output_path: str | Path,
+) -> None:
+    """Résume performance, sparsité et réentraînement du pruning MINT."""
+    required_result_columns = {
+        "model",
+        "validation_f1",
+        "test_f1",
+        "validation_loss",
+        "test_loss",
+        "head_sparsity",
+    }
+    missing_columns = required_result_columns.difference(results.columns)
+    if missing_columns:
+        raise ValueError(
+            "Colonnes de résultats MINT manquantes: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    order = ["M1", "MINT-M2", "MINT-M3"]
+    data = results.copy()
+    data["model"] = pd.Categorical(data["model"], categories=order, ordered=True)
+    data = data.sort_values("model")
+
+    f1_data = data.melt(
+        id_vars="model",
+        value_vars=["validation_f1", "test_f1"],
+        var_name="ensemble",
+        value_name="f1",
+    )
+    f1_data["ensemble"] = f1_data["ensemble"].replace(
+        {"validation_f1": "Validation", "test_f1": "Test"}
+    )
+    loss_data = data.melt(
+        id_vars="model",
+        value_vars=["validation_loss", "test_loss"],
+        var_name="ensemble",
+        value_name="loss",
+    )
+    loss_data["ensemble"] = loss_data["ensemble"].replace(
+        {"validation_loss": "Validation", "test_loss": "Test"}
+    )
+
+    figure, axes = plt.subplots(2, 2, figsize=(15, 10))
+    sns.barplot(
+        data=f1_data,
+        x="model",
+        y="f1",
+        hue="ensemble",
+        errorbar=None,
+        ax=axes[0, 0],
+    )
+    axes[0, 0].set_title("F1 avant et après MINT")
+    axes[0, 0].set_xlabel("Modèle")
+    axes[0, 0].set_ylabel("F1")
+
+    sns.barplot(
+        data=loss_data,
+        x="model",
+        y="loss",
+        hue="ensemble",
+        errorbar=None,
+        ax=axes[0, 1],
+    )
+    axes[0, 1].set_title("Loss avant et après MINT")
+    axes[0, 1].set_xlabel("Modèle")
+    axes[0, 1].set_ylabel("Loss")
+
+    sns.barplot(
+        data=data,
+        x="model",
+        y="head_sparsity",
+        errorbar=None,
+        ax=axes[1, 0],
+    )
+    axes[1, 0].set_title("Sparsité effective de la tête H2")
+    axes[1, 0].set_xlabel("Modèle")
+    axes[1, 0].set_ylabel("Poids prunés")
+    axes[1, 0].yaxis.set_major_formatter(
+        plt.FuncFormatter(lambda value, _: f"{value:.0%}")
+    )
+
+    if not history.empty:
+        axes[1, 1].plot(
+            history["epoch"],
+            history["train_loss"],
+            marker="o",
+            label="Entraînement",
+        )
+        axes[1, 1].plot(
+            history["epoch"],
+            history["validation_loss"],
+            marker="s",
+            label="Validation",
+        )
+        axes[1, 1].legend()
+    axes[1, 1].set_title("Réentraînement one-shot avec masque figé")
+    axes[1, 1].set_xlabel("Époque")
+    axes[1, 1].set_ylabel("Loss")
+
+    figure.suptitle("Pruning MINT de la tête H2 avec Word2Vec W1 complet")
     _save_figure(figure, output_path)

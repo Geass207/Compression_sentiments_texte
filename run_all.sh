@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+if [ -x ".venv/bin/python" ]; then
+    PYTHON_EXECUTABLE=".venv/bin/python"
+else
+    PYTHON_EXECUTABLE="python"
+fi
+
 # Si des résultats existent déjà, on les archive avec la date/heure
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
@@ -13,19 +19,22 @@ fi
 
 mkdir -p artifacts figures
 
-echo "=== [1/5] Préparation des données ==="
-python scripts/01_prepare_data.py
+echo "=== [1/6] Préparation des données ==="
+"${PYTHON_EXECUTABLE}" scripts/01_prepare_data.py
 
-echo "=== [2/5] Tokenisation ==="
-python scripts/02_tokenize.py
+echo "=== [2/6] Tokenisation ==="
+"${PYTHON_EXECUTABLE}" scripts/02_tokenize.py
 
-echo "=== [3/5] Word2Vec & Pruning CBOW ==="
-python scripts/03_train_word2vec_variants.py
+echo "=== [3/6] Entraînement du Word2Vec W1 complet (sans pruning) ==="
+"${PYTHON_EXECUTABLE}" scripts/03_train_word2vec_variants.py
 
-echo "=== [4/5] Classifieurs ==="
-python scripts/04_train_32_combinations.py
+echo "=== [4/6] Entraînement et benchmark OBD des classifieurs ==="
+"${PYTHON_EXECUTABLE}" scripts/04_train_32_combinations.py
 
-echo "=== [5/5] Visualisations ==="
-python scripts/05_visualize_results.py
+echo "=== [5/6] Pruning MINT de la tête W1/H2 ==="
+"${PYTHON_EXECUTABLE}" scripts/05_mint.py
+
+echo "=== [6/6] Visualisations ==="
+MPLCONFIGDIR=/tmp/compression-matplotlib "${PYTHON_EXECUTABLE}" scripts/06_visualize_results.py
 
 echo "Nouveau run terminé !"

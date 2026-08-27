@@ -15,7 +15,8 @@ Compression/
 │   ├── 02_tokenize.py
 │   ├── 03_train_word2vec_variants.py
 │   ├── 04_train_32_combinations.py
-│   └── 05_visualize_results.py
+│   ├── 05_mint.py
+│   └── 06_visualize_results.py
 ├── src/                    # Code source modulaire
 │   ├── classifier.py       # Architecture et entraînement des Sentiment Heads
 │   ├── pruning.py          # Fonctions OBD, calcul d'Hessienne et boucles d'élagage
@@ -69,8 +70,11 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
    # Étape 4 : Entraînement et élagage des classifieurs avec W1 (M1 à M4)
    python scripts/04_train_32_combinations.py
 
-   # Étape 5 : Génération des graphiques et courbes de performance
-   python scripts/05_visualize_results.py
+   # Étape 5 : Pruning MINT one-shot de la tête H2 avec W1 complet
+   python scripts/05_mint.py
+
+   # Étape 6 : Génération des graphiques et courbes de performance
+   python scripts/06_visualize_results.py
 
 ---
 
@@ -84,6 +88,11 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
 - M2 : Modèle élagué non structuré (masqué sans réentraînement).
 - M3 : Modèle élagué avec réentraînement itératif (Lottery Ticket Hypothesis).
 - M4 : Modèle directement entraîné avec la capacité réduite cible.
+- MINT-M2 : Tête H2 élaguée en une passe avec les scores de GMI conditionnelle.
+- MINT-M3 : Même masque MINT, suivi d'un réentraînement avec poids masqués figés.
+
+Le pruning MINT est appliqué uniquement à la tête H2. Le checkpoint Word2Vec
+W1 reste complet en dimension 200 et n'est jamais modifié par cette étape.
 
 ---
 
@@ -91,3 +100,5 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
 
 - F1-score vs Nombre de paramètres effectifs.
 - Loss Ajustée : Pénalisation de la complexité via Loss_ajustee = Loss + alpha * (P / P_max).
+- Comparaison dédiée de la loss ajustée entre H2-M1, MINT-M2 et MINT-M3
+  dans `figures/adjusted_loss_mint_W1_H2.png` (alpha = 0.4).
