@@ -1,0 +1,235 @@
+%!LW recipe=latexmk-report
+
+% -*- coding: utf-8 -*-
+
+% \documentclass[12pt, a4paper, titlepage]{article}
+\documentclass[language=fr, year=1A, enterprise=ensIIE]{ensiie-report}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% DÉCLARATION DU PRÉAMBULE %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{preamble}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% DÉCLARATION DU GLOSSAIRE %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\makeglossaries
+\input{glossaries.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ACTIVATION DE L'EXTERNALISATION TIKZ %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% On le fait pas dans le fichier .sty car c'est une commande qui dépend de documentclass.
+% En clair, cela va permettre de créer les images TikZ dans le dossier "tikz/build" pour gagner du temps de compilation (si jamais on est amené à en faire)
+% La première compilation est très longue, celles qui suivent sont théoriquement plus rapides.
+
+% Externalisation intéressante SI vous créez un certain nombre de figures avec TikZ. Si ce n'est pas le cas, vous pouvez laisser commenter les lignes suivantes pour la désactiver.
+
+% /!\ L'externalisation ne fonctionne pas sur Overleaf.
+
+% \tikzexternalize
+% [
+%     prefix=tikz/build/,
+%     up to date check={md5},
+%     optimize command away=\AddToShipoutPictureBG
+% ] % Chemin du dossier qui contient les graphiques TikZ
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% MÉTADONNÉES %%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%
+%%% TODO
+%%% Standard macros
+\title{Sujet de stage} % Sujet du stage
+\author{Prénom NOM} % Prénom NOM de l'étudiant(e)
+\date{Jour1 AA mois1 20XX au jour2 BB mois2 20YY} % Dates du stage
+%%%%%%%
+
+%%%%%%%%
+%%% TODO
+%%% Custom macros, à commenter si :
+%%% - template utilisé pour autre chose qu'un rapport de stage
+%%% - classe [ensiie-report] non utilisée
+% \subtitle{Sous-titre} % Sous-titre facultatif, pour préciser le sujet ou l'écrire dans une autre langue
+\years{20XX-20YY} % Année scolaire en cours
+\logoSchool{img/logo_ensiie.png} % Chemin vers le logo de l'ensIIE (ex : img/logo_ensiie.png)
+\logoEnterprise{example-image-a} % Chemin vers le logo de l'entreprise du stage (ex : img/logo_entreprise.png)
+\academicSupervisor{Prénom NOM} % Tuteur de stage
+\internshipSupervisor{Prénom NOM} % Maître de stage
+\internshipEnterprise{Entreprise (Ville, département)} % Lieu du stage
+%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% DÉBUT DU DOCUMENT %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+% \newgeometry{hmargin=2.5cm,vmargin=2.5cm} % Changer les marges de la page de garde
+\AddToShipoutPictureBG{\BackgroundPicFirstPage} % Pour activer le remplissage de la première page par le background choisi (dépend de l'entreprise définie dans la classe ensiie-report)
+\maketitle
+\ClearShipoutPictureBG % Pour retirer le fond sur toutes les pages suivantes
+\afterpage{\blankpage} % Page vide
+\restoregeometry
+
+% \AddToShipoutPicture{\BackgroundPicAllPages} % Pour un autre fond sur toutes les autres pages
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% REMERCIEMENTS %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagenumbering{roman}
+\pagestyle{FirstPages}
+
+\section*{Remerciements}\label{sec:remerciements}
+\addcontentsline{toc}{section}{Remerciements}
+
+\input{sub/010_remerciements.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% SYNTHÈSE %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Synthèse}\label{sec:synthese}
+\addcontentsline{toc}{section}{Synthèse}
+
+\input{sub/020_synthese.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% GLOSSAIRE %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Glossaire}\label{sec:glossaire}
+\addcontentsline{toc}{section}{Glossaire}
+
+\setglossarystyle{list}
+% \setupglossaries{numberedsection=autolabel}
+% \setupglossaries{section,numberedsection=nameref}
+\printglossary[type=\acronymtype, title=Acronymes, toctitle=Acronymes]
+\printglossary[title=Vocabulaire, toctitle=Vocabulaire]
+\printglossary[type=symbol, toctitle=Symboles]
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% LISTES DES FIGURES/TABLES/ÉQUATIONS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\renewcommand{\listfigurename}{Liste des figures}
+\listoffigures\label{sec:lof}
+\addcontentsline{toc}{section}{Liste des figures}
+% \renewcommand{\listtablename}{Liste des tables}
+% \listoftables\label{sec:lot}
+% \addcontentsline{toc}{section}{Liste des tables}
+% \renewcommand{\lstlistlistingname}{Liste des listings}
+% \lstlistoflistings\label{sec:lol}
+% \addcontentsline{toc}{section}{Liste des listings}
+% \renewcommand{\listalgorithmcfname}{Liste des algorithmes}
+% \listofalgorithms\label{sec:loa}
+% \addcontentsline{toc}{section}{Liste des algorithmes}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% TABLE DES MATIÈRES %%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\renewcommand{\contentsname}{Table des matières}
+\tableofcontents
+\label{EndFirstPages} % Pour la numérotation en chiffre romain des premières pages
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% INTRODUCTION %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagenumbering{arabic}
+\pagestyle{MainPages}
+
+\section{Introduction}\label{sec:introduction}
+
+\input{sub/100_introduction.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% CONTEXTE %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Contexte}\label{sec:contexte}
+
+\input{sub/110_contexte.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% TRAVAUX RÉALISÉS %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Travaux réalisés}\label{sec:travaux_realises}
+
+\input{sub/120_travaux_realises.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% RÉSULTATS OBTENUS %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Résultats obtenus}\label{sec:resultats_obtenus}
+
+\input{sub/130_resultats.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% CONCLUSION %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusion et perspectives}\label{sec:conclusion}
+
+\input{sub/140_conclusion.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% DDRS %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+\section{Développement durable et responsabilité sociétale}\label{sec:ddrs}
+
+\input{sub/200_ddrs.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ORGANISATION DE L'ENTREPRISE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Organisation de l'entreprise}\label{sec:organisation}
+
+\input{sub/210_organisation.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%% DÉTAILS TECHNIQUES %%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Détails techniques}\label{sec:details_techniques}
+
+\input{sub/220_details_techniques.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% RÉFÉRENCES %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\renewcommand{\refname}{Références}
+\bibliography{references}\label{sec:references}
+\bibliographystyle{plain}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% FIN DU DOCUMENT %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

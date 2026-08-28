@@ -1,6 +1,6 @@
 """Primitives MINT pour le pruning par information mutuelle géométrique.
 
-Ce module suit la construction décrite dans ``Doc_urgent`` : un bootstrap
+Ce module suit la construction décrite dans les articles cités : un bootstrap
 conditionnel 1-NN produit une population synthétique, puis la statistique de
 Friedman--Rafsky sur un arbre couvrant minimal estime la GMI conditionnelle.
 Il ne modifie aucun modèle ; l'intégration au pipeline de pruning sera faite

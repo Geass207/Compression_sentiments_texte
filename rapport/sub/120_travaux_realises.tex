@@ -1,0 +1,91 @@
+% -*- coding: utf-8 -*-
+% !TEX root = ../main.tex
+
+% TODO Développer dans plusieurs sous-sections ce que vous avez réalisé pendant votre stage
+
+\begin{algorithm}[H]
+%
+\caption{Connaître sa validation}\label{alg:validation}
+\SetAlgoLined
+\SetAlgorithmName{Algorithme}{}{}
+\KwData{Note d'UE $x$}
+\KwResult{Validation ou non}
+%
+\uIf{$x \geqslant 9.51$}
+{
+	Je valide\;
+}
+\Else
+{
+	Je valide pas\;
+}
+%
+\end{algorithm}
+
+%%%
+
+\begin{algorithm}[H]
+%
+\caption{Factorielle de $n$}\label{alg:factorielle}
+\SetAlgoLined
+%\SetAlgorithmName{Algorithme}{}{}
+\KwData{Entier naturel non nul $n$}
+\KwResult{$n!$}
+%
+\Begin
+{
+    $r = 1$\;
+    \For{$i\leftarrow 1$ \KwTo $n$}
+    {
+        $r \leftarrow r*i$\;
+    }
+\Return{$r$}
+}
+%
+\end{algorithm}
+
+%%%
+
+\tcbFileInput{shell}{\faTerminal}{lst/hw.sh}{Exemple de script shell}{lst:hw}
+
+% Alternative | Fonctionne avec la version 2025 de TeX Live
+% \fileInput[%
+%     language=shell,
+%     logo=\faTerminal,
+%     caption={Exemple de script shell},
+%     label=lst:hw,
+%     fontsize=\small
+% ]{lst/hw.sh}
+
+\tcbFileInput{python}{\faPython}{lst/dummy.py}{Exemple de script Python}{lst:dummy}
+
+%%%
+
+\newpage
+\begin{figure}[!h]
+\begin{center}
+\tikzsetnextfilename{dummy}
+\resizebox{\textwidth}{!}{%
+\input{tikz/dummy}
+}%
+\caption{Exemple de dessin TikZ}
+\label{fig:dummy}
+\end{center}
+\end{figure}
+
+On peut insérer du texte avec une image \inlinegraphics{example-image-a} et faire référence à la \autoref{sec:introduction}, à la \autoref{fig:dirtree_example}, et même à l'\autoref{alg:factorielle}.
+
+Paralléliser un code Python, c'est une bonne idée. \cite{mpi4py}
+
+Je fais référence au glossaire par l'adjectif suivant : \gls{egal}, \glsf{egal}, \glspl{egal}, \glsf{egal}s.
+
+%%%%%%%%%
+%%%%%%%%%
+%%%%%%%%%
+%%%%%%%%%
+
+\subsection{Parlons CPU}\label{ssec:dummy_cpu}
+
+On parlera aussi éventuellement du \gls{cpu}, du débit \acs{io} ou de l'espace de stockage en \acl{go}.
+
+Connaissez-vous la fonction \( \gls{psi} \) ?

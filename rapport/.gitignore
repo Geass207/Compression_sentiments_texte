@@ -1,0 +1,39 @@
+# Dossiers et Fichiers générés à la compilation
+*_minted*
+*.acn
+*.acr
+*.alg
+*.aux
+*.auxlock
+*.blg
+*.bbl
+*.config.minted
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.ist
+*.listing
+*.loa
+*.lof
+*.lol
+*.lot
+*.log
+*.out
+*.sbl
+*.slg
+*.sym
+*.synctex.gz
+*.synctex(busy)
+*.toc
+
+# Externalisation de TikZ
+*.dpth
+*.md5
+tikz/*.pdf
+tikz/build/*.pdf
+
+# Autre
+.chktexrc
+svg-inkscape

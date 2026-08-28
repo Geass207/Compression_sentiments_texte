@@ -41,4 +41,11 @@ env/
 /explication_mint.tex
 /explication_mint.pdf
 
+#token git 
 /token.md
+
+# Copie originale du template
+/iiepp-latex-main-template-internship
+
+# Dossiers de compilation LaTeX
+**/build/

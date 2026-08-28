@@ -1,0 +1,339 @@
+% -*- coding: utf-8 -*-
+
+%  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  %
+%                                                     d8b d8b   %
+%  Author      : Lorenzo 'Lorocas' LUCAS -- ROBLOT   888888888  %
+%  Description : ensIIE 2025 report package          `Y88888P'  %
+%  Version     : 1.0                                  `Y888P'   %
+%  Date        : 16/07/2025                            `Y8P'    %
+%                                                       `Y'     %
+%  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *  %
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% DÉCLARATION DU PAQUET %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{preamble}[2025/07/16 ensIIE report package]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% DÉCLARATION DES SOUS-PAQUETS NÉCESSAIRES %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Importation des paquets}
+
+% Pour tout ce qu'est encodage, entre autre
+\RequirePackage[T1]{fontenc} % Primordial pour l'encodage des caractères
+\RequirePackage[utf8]{inputenc} % Pour bien gérer l'encodage UTF-8
+
+% Pour faire des maths
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{braket}  % Physique quantique
+
+% Pour soigner la mise en forme des pages
+\RequirePackage[a4paper]{geometry} % Modification de la taille des bordures
+\RequirePackage{fancyhdr} % Pour modifier l'entête et le bas de page
+\RequirePackage{eso-pic} % Pour ajouter des images en fond des pages
+
+% Pour améliorer la présentation du texte de manière générale
+\RequirePackage{setspace} % Pour gérer les alinéas
+\RequirePackage{xcolor} % red green blue cyan magenta yellow black gray white darkgray lightgray brown lime olive orange pink purple teal violet
+
+% Pour gérer plus proprement la taille des matières
+\RequirePackage[
+nottoc, % Disables the inclusion of the ToC.
+notlot, % Disables the inclusion of the List of Tables
+notlof, % Disables the inclusion of the List of Figures
+numbib % Number the Bibliography heading (default is no number).
+]{tocbibind}
+
+% Pour ajouter des images
+\RequirePackage{graphicx, calc} % Insérer des images
+\RequirePackage{caption} % Changer la forme des légendes
+
+% Pour insérer du code
+\RequirePackage{minted} % Requiert l'installation de Pygmentize et de l'ajout de l'option --shell-escape dans la ligne de compilation
+
+% Pour utiliser TikZ
+\RequirePackage{tikz}
+% \RequirePackage{pgfplots} % Pour faire les graphiques
+% \pgfplotsset{compat=1.18} % Version de pgfplots
+\RequirePackage{standalone} % Insertion des illustrations TikZ optimisée
+
+% Autre
+\RequirePackage{adjustbox} % Centrer les tableaux
+\RequirePackage{fontawesome5} % Ajout d'icônes, cf https://texlive.mycozy.space/fonts/fontawesome5/doc/fontawesome5.pdf
+\RequirePackage[theorems,skins,most]{tcolorbox} % Pour faire une belle boîte
+\RequirePackage{hyperref} % Pour ajouter des liens proprement
+\RequirePackage{tabularx} % Pour faire des tableaux avec plus de précision
+\RequirePackage{ragged2e} % Pour changer la commande tabularxcolumn ci-dessous
+\RequirePackage{enumitem} % Pour changer la présentation des listes
+\RequirePackage{dirtree} % Pour faire l'arborescence d'un système de fichiers, par exemple
+\RequirePackage[linesnumbered,ruled,vlined, french]{algorithm2e} % Pour insérer des pseudo-algorithmes % XXX changer la langue si besoin, cf p18 http://ctan.mirror.norbert-ruehl.de/macros/latex/contrib/algorithm2e/doc/algorithm2e.pdf
+% \RequirePackage[acronym]{glossaries} % Pour ajouter un glossaire, fonctionne avec le fichier .latexmkrc
+\RequirePackage[toc=false, automake, acronym, shortcuts=ac]{glossaries-extra} % Pour ajouter un glossaire, fonctionne tout seul
+\RequirePackage{etoolbox} % Pour modifier la macro \sloppy
+\RequirePackage{pgfkeys} % Pour créer des couples clé-valeur
+\RequirePackage{titling} % Pour avoir le nom de l'auteur qui apparaît dans l'entête
+
+%%%%%                          %%%%%
+%%%                              %%%
+%   AJOUTER VOS PAQUETS CI-APRÈS   %
+%%%                              %%%
+%%%%%                          %%%%%
+
+% \RequirePackage[]{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% MISE EN FORME DES PAGES %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Modification de certaines mises en page}
+
+% Changement des bordures / Entête et bas de page (défaut)
+\geometry{hmargin=2.5cm,vmargin=2.5cm} % Base 3.6cm/4.5cm
+\pagestyle{fancy}
+
+% Réglages de mise en page généraux
+% \setlength{\parskip}{5pt} % Pour changer l'espace entre les paragraphes
+% \setlength{\parindent}{0pt} % Retrait des alinéas
+\setstretch{1.1} % Modification de l'alinéa par défaut
+
+% Environnement itemize
+\setlist[itemize]{itemsep=-3pt}
+
+% Pour que VSCode arrête de mettre un warning pas important
+\setlength{\headheight}{15pt}
+\addtolength{\topmargin}{-3pt}
+
+% Tableaux
+\renewcommand{\arraystretch}{1.5} % Pour qu'il y ait un peu plus d'espace verticale dans les cellules des tableaux
+
+% Contenu de l'entête et pied de page (défaut)
+\lhead{{\textsc{\theauthor}}}
+% \chead{haut de page centre} % Facultatif
+\rhead{Test}
+% \lfoot{\textsc{\makeatletter\@author\makeatother}} % Facultatif
+\cfoot{\thepage{}}
+% \rfoot{Page \thepage{} sur \pageref*{LastPage}} % Facultatif
+% \renewcommand{\headrulewidth}{0.4pt}
+% \renewcommand{\footrulewidth}{0.4pt} % Facultatif % Pour ajouter un trait en bas de page
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% CUSTOMISATIONS DIVERSES %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Ajout de customisations diverses}
+
+% Déclaration du séparateur entre la nature de la figure et sa légende
+\DeclareCaptionLabelSeparator{separator}{\space :\space}
+% Choix du séparateur
+\captionsetup{labelsep=separator}
+% Choix de la présentation des pages
+% Choix de la coloration relative au paquet hyperref
+\hypersetup
+{
+	colorlinks=true,
+	linkcolor=blue,
+	filecolor=magenta,
+	urlcolor=cyan,
+	citecolor=red,
+}
+% Externalisation des illustrations TikZ (speed-up compilation time)
+\usetikzlibrary{external}
+% Pour redéfinir X de tabularx et assurer l'alignement vertical et horizontal
+\renewcommand{\tabularxcolumn}[1]{>{\Centering}m{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% AJOUT DE LIBRAIRIES TIKZ %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usetikzlibrary{positioning, arrows.meta, fit, calc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% INSERTION DE CODE %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Définition de blocs de code}
+
+% Référence : https://tex.stackexchange.com/questions/304449/combine-minted-and-tcolorbox-for-code-from-file-inputminted
+
+\newcounter{lst} % Quand on veut faire référence au listing
+\newcommand{\lstautorefname}{listing} % Définition de "listing" comme nom pour \autoref
+% \newcommand{\listoflistings}{\listoftoc{lol}{\listlistingname}}
+\tcbuselibrary{listings, minted, skins}
+\newtcbinputlisting[use counter=lst, list inside=lol, number format=\arabic, list type={lstlisting}]{\tcbFileInput}[6][]{%
+  % Setup de l'environnement du listing
+  listing engine=minted,
+  listing only,
+  minted language=#2,
+  listing file={#4},
+  minted options={breaklines, autogobble, linenos, numbersep=8mm, fontsize=\small},
+  % Style
+  enhanced,
+  breakable,
+  colback=black!3!white,
+  top=8pt,
+  bottom=8pt,
+  toprule=1pt,
+  bottomrule=1pt,
+  leftrule=0pt,
+  rightrule=0pt,
+  arc=0mm,
+  attach boxed title to top center={yshift=-11pt},
+  title = {\textcolor{blue!80!black}{#3} -- Listing \thetcbcounter ~: #5 -- \textcolor{blue!80!black}{#3}},
+  coltitle= black,
+  boxed title style={colback=white},
+  % Autre
+  list entry={\protect\numberline{\thetcbcounter}#5},
+  label=#6,
+  shield externalize, % Pour protéger de l'externalisation (sinon ça compile pas)
+  #1, % Ajout d'options supplémentaires
+}
+
+% Définition de paires de clé-valeur
+\pgfkeys{
+  /fileinput/.is family, /fileinput,
+  default/.style = {%
+    language = {text},
+    logo = {\faFile},
+    caption = {Légende},
+    label = {lst:todo},
+    fontsize = {\small},
+  },
+  language/.estore in = \fiLanguage,
+  logo/.code = {\def\fiLogo{#1}},
+  caption/.code = {\def\fiCaption{#1}},
+  label/.estore in = \fiLabel,
+  fontsize/.code = {\def\fiFontsize{#1}},
+}
+
+\newcommand{\fileInput}[2][]{%
+  \pgfkeys{/fileinput, default, #1}%
+  \tcbFileInput[%
+    minted options={fontsize=\fiFontsize},
+  ]{\fiLanguage}{\fiLogo}{#2}{\fiCaption}{\fiLabel}%
+}
+
+% Usage: \fileInput[language={option}, logo={option}, caption={option}, label={option}]{chemin/vers/fichier}
+
+% Définition d'un environnement pour simuler un terminal
+\newtcblisting{terminalcode}[1][]{
+  % Setup de l'environnement du listing
+  listing engine=minted,
+  listing only,
+  minted language=shell,
+  minted options={breaklines, autogobble, numbersep=8mm},
+  % Style
+  enhanced,
+  breakable,
+  colback=black!3!white,
+  toprule=1pt,
+  bottomrule=1pt,
+  leftrule=0pt,
+  rightrule=0pt,
+  arc=0mm,
+  attach boxed title to top left={yshift=-9pt, xshift=4pt},
+  title = \textcolor{blue!80!black}{\faTerminal},
+  coltitle= black,
+  boxed title style={colback=white},
+  % Autre
+  shield externalize, % Pour protéger de l'externalisation (sinon ça compile pas)
+  #1, % Ajout d'options supplémentaires
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% INSERTION D'ALGORITHMES %%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\DontPrintSemicolon % Pour retirer les ; dans le pseudo-code
+\SetKwInput{KwData}{Données}
+\SetKwInput{KwResult}{Résultat}
+\SetKwBlock{Begin}{Début}{Fin}
+\SetKw{KwTo}{jusqu'à}
+\SetKwFor{While}{Tant que}{faire}{Fin}
+\SetKwFor{For}{Pour}{faire}{Fin}
+\SetKwIF{If}{ElseIf}{Else}{Si}{alors}{Sinon si}{Sinon}{Fin}
+\SetKw{KwRet}{Retourner}
+\SetKw{Return}{Retourner}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% MODIFICATIONS DU GLOSSAIRE %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Modification des paramètres du glossaire}
+
+% Changer la couleur du texte pour les éléments du glossaire
+\renewcommand*{\glstextformat}[1]{\textcolor{black}{#1}}
+
+% Ajout du féminin comme option dans le glossaire
+\glsaddkey
+  {feminine}% key
+  {}% default value
+  {\glsentryfeminine}% no link cs
+  {\Glsentryfeminine}% no link ucfirst cs
+  {\glsf}% link cs
+  {\Glsf}% link ucfirst cs
+  {\GLSf}% link all caps cs
+
+% Création d'un nouveau type de glossaire pour les symboles
+\newglossary[slg]{symbol}{sym}{sbl}{Symboles}
+% \newglossary[extension-log-file]{nom-type}{input-file-extension}{output-file-extension}{titre}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MODIFICATIONS DE LA BIBLIOGRAPHIE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Modification des paramètres de la bibliographie}
+
+% Pour limiter les warnings dans la bibliographie
+\apptocmd{\sloppy}{\hbadness 10000\relax}{}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AUTRES COMMANDES PERSONNALISÉES %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Déclaration de commandes personnalisées}
+
+% Ajout d'une image au milieu d'un texte
+\newlength\logoTextHeight
+\newlength\logoTextDepth
+\settototalheight\logoTextHeight{Xygp}
+\settodepth\logoTextDepth{Xygp}
+\newcommand*\inlinegraphics[1]{%
+  \settototalheight\logoTextHeight{Xygp}%
+  \settodepth\logoTextDepth{Xygp}%
+  \raisebox{-\logoTextDepth}{\includegraphics[height=\logoTextHeight]{#1}}%
+}
+% Usage: Mon texte \inlinegraphics{img.png} avec une image
+
+% Changer le nom des références avec \autoref
+\renewcommand{\subsectionautorefname}{sous-section}
+\renewcommand{\subsubsectionautorefname}{sous-sous-section}
+\renewcommand{\figureautorefname}{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% COULEURS PERSONNALISÉES %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Déclaration de couleurs personnalisées}
+
+\definecolor{gold}{HTML}{f2c231}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% POLICES PERSONNALISÉES %%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\PackageInfo{preamble}{Déclaration de polices personnalisées}
+
+% Cela s'utilise de la même façon que \large, \Large, \footnotesize...
+\makeatletter
+\newcommand{\petit}{\@setfontsize{\petit}{7pt}{7pt}}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% FIN DU FICHIER %%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\endinput
