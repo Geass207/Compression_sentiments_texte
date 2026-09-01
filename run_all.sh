@@ -19,22 +19,25 @@ fi
 
 mkdir -p artifacts figures
 
-echo "=== [1/6] Préparation des données ==="
+echo "=== [1/7] Préparation des données ==="
 "${PYTHON_EXECUTABLE}" scripts/01_prepare_data.py
 
-echo "=== [2/6] Tokenisation ==="
+echo "=== [2/7] Tokenisation ==="
 "${PYTHON_EXECUTABLE}" scripts/02_tokenize.py
 
-echo "=== [3/6] Entraînement du Word2Vec W1 complet (sans pruning) ==="
+echo "=== [3/7] Entraînement du Word2Vec W1 complet (sans pruning) ==="
 "${PYTHON_EXECUTABLE}" scripts/03_train_word2vec_variants.py
 
-echo "=== [4/6] Entraînement et benchmark OBD des classifieurs ==="
+echo "=== [4/7] Entraînement et benchmark OBD des classifieurs ==="
 "${PYTHON_EXECUTABLE}" scripts/04_train_32_combinations.py
 
-echo "=== [5/6] Pruning MINT de la tête W1/H2 ==="
+echo "=== [5/7] Pruning MINT de la tête W1/H2 ==="
 "${PYTHON_EXECUTABLE}" scripts/05_mint.py
 
-echo "=== [6/6] Visualisations ==="
+echo "=== [6/7] Visualisations existantes ==="
 MPLCONFIGDIR=/tmp/compression-matplotlib "${PYTHON_EXECUTABLE}" scripts/06_visualize_results.py
+
+echo "=== [7/7] Figures de synthèse du rapport ==="
+MPLCONFIGDIR=/tmp/compression-matplotlib "${PYTHON_EXECUTABLE}" scripts/07_generate_report_figures.py
 
 echo "Nouveau run terminé !"

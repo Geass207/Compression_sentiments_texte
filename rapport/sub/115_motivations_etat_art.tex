@@ -1,0 +1,485 @@
+% -*- coding: utf-8 -*-
+% !TEX root = ../main.tex
+
+La classification de texte est traversée par un compromis entre capacité
+prédictive et coût d'utilisation. À famille d'architectures et conditions
+d'apprentissage comparables, augmenter le nombre de paramètres élargit en
+général la capacité d'un modèle à représenter des régularités complexes. Cette
+augmentation ne garantit pas à elle seule une meilleure performance : son
+intérêt dépend notamment des données disponibles et de l'optimisation. Elle a
+néanmoins accompagné une grande partie des progrès récents, depuis les
+représentations distribuées jusqu'aux modèles contextuels préentraînés.
+
+Cette capacité supplémentaire a un coût. Un modèle plus volumineux occupe
+davantage de mémoire et demande généralement plus d'opérations pour produire
+une prédiction. Or l'entraînement peut n'être réalisé qu'une fois, tandis que
+l'inférence est répétée pour chaque nouveau texte. Le coût pertinent pour le
+déploiement n'est donc pas seulement celui de la construction du modèle, mais
+aussi celui de son stockage et de son exécution répétée. La compression cherche
+à réduire ce coût récurrent tout en limitant la dégradation de la performance.
+Les travaux d'élagage s'inscrivent historiquement dans cette recherche d'une
+capacité plus compacte \cite{lecun1989obd,han2015learning}.
+
+Avant d'étudier cette compression, il faut préciser ce qui est effectivement
+exécuté lors d'une classification. Le traitement comporte deux problèmes
+successifs : transformer une suite de symboles, de longueur variable, en une
+représentation numérique exploitable, puis prendre une décision à partir de
+cette représentation. Dans un système neuronal, ces fonctions sont
+généralement assurées par un \emph{backbone} de représentation et par une tête
+de classification. Cette décomposition fournit le fil conducteur de l'état de
+l'art : comprendre l'évolution de ces deux composants, les gains obtenus et les
+coûts introduits, avant de présenter les méthodes proposées pour les réduire.
+
+\subsection{Backbone de représentation et tête de classification}
+\label{ssec:etat_art_architecture}
+
+Le backbone reçoit le texte brut et produit les caractéristiques utilisées par
+le classifieur. Il comprend d'abord une étape de tokenisation, qui découpe le
+texte en unités et associe un identifiant à chacune d'elles. Il contient ensuite
+un mécanisme de représentation. Dans un modèle fondé sur des embeddings, chaque
+identifiant est associé à un vecteur dense de petite dimension appris à partir
+des données. Le terme \emph{embedding} désigne à la fois cette association et
+le vecteur obtenu. Enfin, lorsque le classifieur attend un seul vecteur par
+texte, le backbone doit agréger les représentations des différentes unités, par
+exemple au moyen d'une moyenne ou d'un réseau qui tient compte de leur ordre.
+
+La tête de classification reçoit la représentation produite par le backbone et
+la transforme en scores de classes. Elle peut être linéaire ou composée de
+plusieurs couches. Dans le cas de l'analyse de sentiments binaire, elle doit
+estimer si les caractéristiques du texte sont davantage associées à un
+sentiment positif ou négatif. Son apprentissage utilise donc les textes
+représentés par le backbone et leurs étiquettes, alors que le backbone peut être
+préentraîné sur une tâche différente et éventuellement sans annotations de
+sentiment.
+
+Cette séparation permet aussi de distinguer le coût d'apprentissage du coût
+d'inférence. Un backbone peut être préentraîné une fois, puis figé lorsque le
+système est déployé. Classifier un nouveau texte ne demande alors pas de
+réapprendre ses paramètres : le texte est propagé dans le backbone, puis dans
+la tête, avec les paramètres déjà acquis. Le préentraînement constitue donc un
+coût initial, tandis que les calculs d'inférence sont répétés à chaque
+prédiction.
+
+Le backbone et la tête peuvent tous deux être comprimés, mais ces deux choix
+n'ont pas la même portée. Modifier le backbone peut réduire une part importante
+du coût total, au risque de changer toutes les représentations fournies au
+classifieur. Agir uniquement sur la tête laisse ces représentations inchangées
+et isole le coût de la décision finale. Dans les deux cas, le fait qu'un
+composant soit préentraîné ne le rend pas gratuit à l'inférence : il doit encore
+être stocké et exécuté pour traiter une nouvelle entrée.
+
+\subsection{Évolution des représentations et des classifieurs de texte}
+\label{ssec:etat_art_representations}
+
+Un algorithme d'apprentissage ne traite pas directement des mots ou des
+caractères : il traite des nombres. La difficulté ne consiste donc pas seulement
+à attribuer un identifiant à chaque unité, mais à construire une représentation
+qui conserve les informations utiles à la tâche. Les méthodes successives se
+distinguent par la nature de cette information et par le coût nécessaire pour
+l'obtenir.
+
+\subsubsection{Comptages, sacs de mots et séquences locales}
+
+Une représentation simple est le sac de mots. Chaque coordonnée du vecteur
+correspond à un élément du vocabulaire et contient son nombre d'occurrences, sa
+présence ou un score TF--IDF, qui pondère la fréquence locale d'une unité par sa
+rareté dans le corpus. Le texte est alors décrit par les unités qu'il contient,
+indépendamment de leur position. Cette représentation est
+facile à calculer et à interpréter, mais elle produit des vecteurs de la taille
+du vocabulaire, généralement très creux. Surtout, elle ne porte aucune notion
+de proximité : \emph{excellent} et \emph{remarquable} occupent deux coordonnées
+indépendantes, même si ces mots peuvent exprimer une appréciation voisine.
+
+Le sac de mots perd également l'ordre. Pour réintroduire un contexte local, il
+est possible d'utiliser des $n$-grammes. Un $n$-gramme est une suite contiguë de
+$n$ unités : un unigramme contient une unité, un bigramme en contient deux et
+un trigramme trois. Les bigrammes peuvent par exemple distinguer la présence de
+\emph{bon} de celle de \emph{pas bon}. Leur pouvoir descriptif a toutefois un
+coût : le nombre de suites possibles augmente rapidement avec $n$ et avec la
+taille du vocabulaire. La majorité des combinaisons sont rares ou absentes du
+corpus, ce qui limite la généralisation à des formulations nouvelles.
+
+Les travaux de Shannon fournissent le cadre probabiliste permettant de raisonner
+sur ces séquences. Ils formalisent la source de symboles, l'entropie et la
+dépendance statistique \cite{shannon1948communication}. Le
+traité de Gallager systématise ensuite ces outils de théorie de l'information
+\cite{gallager1968information}. Ces références ne proposent pas encore de
+représentation sémantique des mots. Elles établissent plutôt les concepts qui
+permettent de mesurer l'incertitude d'une séquence et l'information partagée par
+ses éléments.
+
+L'analyse distributionnelle apporte un changement de perspective. Harris
+observe que le comportement d'une unité linguistique peut être étudié à partir
+des environnements dans lesquels elle apparaît
+\cite{harris1954distributional}. Autrement dit, les contextes d'un mot donnent
+une information sur son rôle dans la langue. Cette idée permet de dépasser une
+représentation où chaque mot est totalement indépendant des autres, sans encore
+construire de vecteurs continus.
+
+Brown et ses coauteurs exploitent cette information de contexte dans des
+modèles de langage fondés sur des classes de mots
+\cite{brown1992class}. Leur méthode regroupe les mots selon leurs statistiques
+de cooccurrence et utilise ces groupes dans un modèle $n$-gramme. Les classes
+obtenues peuvent refléter des régularités syntaxiques ou sémantiques, et elles
+réduisent la rareté par rapport à un modèle où chaque mot est traité isolément.
+La similarité reste cependant discrète : deux mots appartiennent ou non à la
+même classe, sans que le modèle exprime différents degrés de proximité.
+
+À ce stade, le backbone produit donc le plus souvent un vecteur de comptages,
+éventuellement enrichi par des $n$-grammes, et la tête repose sur un algorithme
+d'apprentissage classique. Le classifieur naïf bayésien estime la probabilité
+d'une classe en supposant les caractéristiques conditionnellement
+indépendantes. Le modèle de maximum d'entropie apprend directement une
+distribution sur les classes sans cette hypothèse, tandis que la machine à
+vecteurs de support recherche une frontière qui sépare les exemples avec une
+marge aussi large que possible. Pang, Lee et Vaithyanathan comparent ces trois
+familles sur la polarité de critiques de films
+\cite{pang2002sentiment}. Leur étude confirme leur intérêt pour l'analyse de
+sentiments, mais montre aussi que cette tâche est plus délicate que la
+catégorisation thématique : la présence d'un mot positif ou négatif ne suffit
+pas toujours, car sa portée, la négation et la construction de la phrase peuvent
+en inverser l'interprétation.
+
+Ces méthodes fournissent des bases solides et interprétables, mais elles restent
+fortement liées aux formes effectivement observées. Deux expressions proches
+partagent peu d'information si elles n'emploient pas les mêmes unités ou les
+mêmes $n$-grammes. Il devient donc nécessaire de construire une représentation
+qui encode des degrés de similarité plutôt que de simples identités.
+
+\subsubsection{Passage aux représentations distribuées}
+
+Bengio et ses coauteurs remplacent ces classes discrètes par des
+représentations distribuées continues apprises avec un modèle de langage
+neuronal \cite{bengio2003neural}. Leur point de départ est la malédiction de la
+dimension : le nombre de séquences possibles est immense par rapport au nombre
+de séquences réellement observées. Un modèle fondé sur l'appariement exact ne
+sait donc pas bien traiter une combinaison nouvelle. Dans un espace continu,
+une séquence inconnue peut au contraire bénéficier de ce qui a été appris sur
+des séquences composées de mots proches. Si \emph{excellent} et
+\emph{remarquable} apparaissent dans des environnements comparables, leurs
+vecteurs peuvent ainsi devenir voisins et partager une partie de l'information
+apprise. Le modèle apprend simultanément les vecteurs des mots et la fonction
+qui prédit le mot suivant.
+
+Cette continuité améliore la généralisation, mais introduit un nouveau coût :
+pour chaque contexte, le réseau doit calculer une probabilité sur l'ensemble du
+vocabulaire. Morin et Bengio proposent une
+décomposition hiérarchique de cette distribution
+\cite{morin2005hierarchical}. Le mot cible est atteint au terme d'une suite de
+décisions dans une hiérarchie, ce qui réduit fortement le nombre de sorties à
+évaluer. Leur contribution porte donc moins sur la définition de l'embedding
+que sur la possibilité de l'apprendre à plus grande échelle.
+
+Le modèle de Bengio utilise encore un contexte de longueur fixée avant
+l'entraînement. Mikolov et ses coauteurs montrent qu'un réseau récurrent peut
+conserver un état dépendant des mots précédents et exploiter ainsi une histoire
+plus longue \cite{mikolov2010rnn}. Cette approche améliore la modélisation de la
+séquence, mais son entraînement demeure relativement coûteux, notamment parce
+que les états successifs sont dépendants les uns des autres. Si l'objectif
+principal est d'obtenir de bons vecteurs de mots, il devient alors intéressant
+de simplifier le modèle de langage lui-même.
+
+\subsubsection{Word2Vec : apprendre efficacement à partir du contexte}
+
+Word2Vec désigne une famille de modèles légers conçus pour apprendre des
+représentations distribuées à partir des contextes observés dans un grand
+corpus. Mikolov et ses coauteurs introduisent deux architectures
+\cite{mikolov2013efficient}. Le modèle \emph{Continuous Bag-of-Words} (CBOW)
+utilise les unités voisines pour prédire l'unité centrale. Skip-gram effectue la
+tâche inverse : il part de l'unité centrale et cherche à prédire son contexte.
+Par exemple, CBOW peut utiliser le contexte \emph{ce film est vraiment …} pour
+prédire une unité telle que \emph{excellent}, alors que Skip-gram part de
+\emph{excellent} pour apprendre à reconnaître les unités susceptibles de
+l'entourer. Dans les deux cas, la tâche de prédiction sert de signal
+d'apprentissage ; les vecteurs contenus dans la couche d'embedding sont ensuite
+réutilisés dans d'autres applications.
+
+Cette simplification ne résout pas entièrement le coût associé à un grand
+vocabulaire. Mikolov et ses coauteurs proposent alors l'échantillonnage négatif,
+ou \emph{negative sampling} \cite{mikolov2013distributed}. Plutôt que de
+comparer systématiquement le mot cible à tous les éléments du vocabulaire,
+l'entraînement oppose une association réellement observée à un petit nombre
+d'associations artificielles. Le calcul devient beaucoup moins coûteux. Le
+sous-échantillonnage des mots très fréquents évite en outre qu'ils dominent
+l'apprentissage alors qu'ils sont souvent peu discriminants. Goldberg et Levy
+reprennent ensuite cet objectif et en donnent une dérivation plus explicite
+pour Skip-gram \cite{goldberg2014word2vec}. Leur analyse aide à comprendre que
+l'échantillonnage négatif est un objectif d'apprentissage de représentations à
+part entière, et pas uniquement une implémentation accélérée d'un modèle de
+langage complet.
+
+\subsubsection{Embeddings statiques et prise en compte de l'ordre}
+
+Un embedding ainsi appris est dense et rapproche les unités apparaissant dans
+des contextes similaires. Pour classifier un texte, la solution la plus simple
+consiste à agréger ses embeddings, puis à fournir le vecteur obtenu à une tête
+neuronale, par exemple un perceptron multicouche. Cette architecture est rapide
+et sépare clairement le backbone de la tête. Elle ne peut toutefois pas
+récupérer l'ordre perdu pendant l'agrégation : approfondir uniquement la tête ne
+corrige donc pas les limites de la représentation qui lui est fournie.
+
+Les architectures suivantes déplacent la modélisation de la séquence dans le
+backbone. Kim applique des convolutions à la suite des vecteurs de mots afin de
+détecter des motifs locaux utiles à la classification
+\cite{kim2014cnn}. Les réseaux récurrents traitent plutôt les unités
+successivement et conservent un état qui résume le contexte précédent. Ces deux
+familles exploitent mieux l'ordre que la moyenne d'embeddings : les convolutions
+privilégient les motifs locaux, tandis que les récurrences peuvent en principe
+relier des positions plus éloignées. Elles couplent cependant davantage la
+représentation et la classification, et leur entraînement est plus coûteux que
+celui d'une simple tête appliquée à un vecteur fixe.
+
+\subsubsection{Du mot aux unités sous-lexicales}
+
+Les modèles qui associent un vecteur à chaque mot complet rencontrent une autre
+limite : leur vocabulaire est nécessairement fini. Une forme rare ou absente du
+corpus d'apprentissage ne possède donc pas de représentation fiable. Les unités
+sous-lexicales réduisent ce problème en représentant un mot à partir de fragments
+plus fréquents. Des formes comme \emph{jouer}, \emph{joueur} et \emph{rejouer}
+peuvent alors partager certains fragments, même si la segmentation apprise ne
+coïncide pas toujours avec un découpage morphologique.
+
+Le \gls{bpe} construit ce vocabulaire en fusionnant progressivement les paires
+de symboles les plus fréquentes. Sennrich, Haddow et Birch montrent l'intérêt de
+ce principe pour le traitement des mots rares en traduction neuronale
+\cite{sennrich2016subword}. Le recours à des sous-unités limite le nombre de
+mots entièrement inconnus, mais allonge les séquences et ne résout pas à lui
+seul la dépendance au contexte.
+
+\subsubsection{Vers des représentations contextuelles}
+
+Les embeddings statiques conservent en outre une limite fondamentale : une même
+unité reçoit le même vecteur dans tous ses contextes et représente donc mal la
+polysémie. Le mot \emph{avocat}, par exemple, conserve une représentation unique
+dans \emph{l'avocat prépare sa plaidoirie} et \emph{elle mange un avocat}, alors
+que son sens change complètement. Les transformeurs préentraînés répondent à
+cette limite en produisant des représentations contextuelles. BERT construit
+ainsi le vecteur d'une unité à partir de son contexte gauche et droit, puis
+l'ensemble du modèle peut être ajusté pour une tâche de classification avec une
+couche de sortie supplémentaire \cite{devlin2019bert}. Cette capacité améliore
+la prise en compte du contexte, mais elle repose sur un backbone beaucoup plus
+volumineux et plus coûteux à l'inférence.
+
+\subsection{Pourquoi comprimer le modèle obtenu ?}
+\label{ssec:etat_art_compression}
+
+Le besoin de compression posé en ouverture ne vient pas d'un réentraînement du
+modèle à chaque requête : une fois déployés, le backbone et la tête conservent
+leurs paramètres appris. Il vient du coût répété de leur utilisation. Chaque
+nouveau texte doit être représenté, puis propagé dans le classifieur. Selon le
+périmètre considéré, ce coût comprend la taille du modèle stocké, la mémoire
+mobilisée, le nombre d'opérations, les accès mémoire, la latence et la
+consommation énergétique.
+
+Une méthode de compression doit préciser le composant et la ressource qu'elle
+cherche à réduire. Une diminution théorique du nombre de paramètres ne garantit
+pas, à elle seule, une diminution de la latence sur le matériel utilisé. Les
+formats de stockage, les accès mémoire et la capacité des bibliothèques à
+exploiter la structure obtenue déterminent également le gain réellement
+observable.
+
+Plusieurs familles de méthodes répondent à ce problème. La quantification réduit
+la précision numérique des poids ou des activations. Les factorisations de
+faible rang remplacent de grandes matrices par des produits de matrices plus
+petites. La distillation entraîne une nouvelle architecture compacte à imiter
+un modèle plus puissant. Le pruning conserve l'architecture de départ mais en
+retire les paramètres ou les structures jugés les moins utiles. Ces approches
+peuvent être combinées : Tu et ses coauteurs associent par exemple un critère de
+pruning fondé sur l'information de Fisher à une quantification non uniforme
+\cite{tu2016fisher}.
+
+\subsubsection{Distillation de connaissances}
+
+La distillation formalise une relation entre un modèle enseignant et un modèle
+étudiant. Hinton, Vinyals et Dean proposent de ne pas entraîner l'étudiant
+uniquement avec les étiquettes finales, mais aussi avec les probabilités
+produites par l'enseignant \cite{hinton2015distilling}. Ces cibles souples
+indiquent quelles classes l'enseignant considère comme proches ou facilement
+confondables. Elles transmettent ainsi une information absente d'une étiquette
+dure. Une température contrôle leur lissage, et l'entraînement combine
+généralement l'imitation de l'enseignant avec la prédiction des vraies
+étiquettes.
+
+La limite de cette formulation initiale est qu'elle exploite surtout la sortie
+finale. Les travaux ultérieurs transfèrent également des représentations
+intermédiaires ou des relations entre exemples. La synthèse de Gou et ses
+coauteurs organise ces méthodes selon le type de connaissance transférée et
+selon le scénario d'entraînement : enseignant préentraîné et figé, apprentissage
+conjoint ou auto-distillation \cite{gou2021survey}. Une synthèse plus récente
+étend cette lecture aux transformeurs, aux modèles de fondation et aux grands
+modèles de langage, tout en soulignant les difficultés créées par l'écart de
+capacité et de structure entre enseignant et étudiant
+\cite{mansourian2025survey}.
+
+\subsubsection{Pruning structuré et non structuré}
+
+Le pruning non structuré retire des connexions individuelles. Sa granularité
+fine permet d'atteindre une forte sparsité, c'est-à-dire une forte proportion de
+poids annulés, mais les zéros restent stockés et calculés si les matrices
+conservent un format dense. Un gain physique exige
+alors un format creux et des noyaux capables de l'exploiter. Le pruning
+structuré retire des unités complètes, comme des neurones, des canaux ou des
+blocs. Il réduit plus facilement les dimensions réelles des matrices, mais son
+choix est plus contraint et peut dégrader plus rapidement la performance.
+
+Dans les deux cas, le problème essentiel est le même : il faut estimer
+l'importance d'un élément avant de le supprimer. Le critère exact consisterait
+à retirer chaque candidat, à réévaluer tout le modèle puis à le restaurer. Ce
+calcul est trop coûteux ; les travaux de la littérature proposent donc des
+approximations fondées successivement sur la courbure, la magnitude, les
+gradients ou les activations.
+
+\subsection{Évolution des critères de pruning}
+\label{ssec:etat_art_pruning}
+
+\subsubsection{De la courbure aux méthodes pratiques}
+
+Optimal Brain Damage, proposé par LeCun, Denker et Solla, fait partie des
+premières méthodes qui donnent une définition analytique de l'importance d'un
+poids \cite{lecun1989obd}. L'idée consiste à approximer l'augmentation de la
+fonction de coût provoquée par sa suppression. Le score dépend à la fois de la
+valeur du poids et de la courbure locale de la fonction de coût. Pour rendre le
+calcul possible, la méthode ne conserve que la diagonale de la Hessienne et
+suppose que le réseau se trouve près d'un minimum. Elle apporte donc plus
+d'information qu'un classement fondé sur la seule magnitude, mais néglige les
+interactions entre paramètres.
+
+Optimal Brain Surgeon est introduit par Hassibi et Stork pour lever précisément
+cette hypothèse \cite{hassibi1993obs}. La méthode utilise l'inverse de la
+Hessienne complète et ajuste les poids conservés afin de compenser la connexion
+supprimée. Elle modélise mieux les dépendances entre paramètres et peut éviter
+certaines suppressions incorrectes d'OBD. Son coût mémoire et calculatoire
+augmente toutefois très rapidement avec le nombre de poids. Cette limite rend
+la méthode difficile à appliquer telle quelle aux réseaux modernes et explique
+l'intérêt persistant pour des approximations diagonales.
+
+Avec l'augmentation de la taille des réseaux, Han et ses coauteurs remettent en
+avant un critère beaucoup plus simple : la magnitude des poids
+\cite{han2015learning}. Leur contribution principale ne réside pas uniquement
+dans le score, mais dans un protocole en trois étapes : entraînement dense,
+suppression des petites connexions, puis réentraînement des poids restants. Ils
+montrent que cette dernière étape est déterminante et que plusieurs cycles
+progressifs sont préférables à une suppression brutale. La méthode passe à
+l'échelle, mais la magnitude ne mesure pas directement l'effet d'un poids sur
+la prédiction et la sparsité irrégulière n'accélère pas automatiquement le
+matériel généraliste.
+
+\subsubsection{Information de Fisher et critères du premier ordre}
+
+Tu et ses coauteurs proposent d'utiliser l'information de Fisher pour mesurer
+la sensibilité de la distribution de sortie aux paramètres
+\cite{tu2016fisher}. La diagonale de cette matrice peut être estimée à partir des
+gradients accumulés pendant l'entraînement. Les paramètres associés à une faible
+information sont considérés comme moins importants. Les auteurs constatent
+cependant que les très petites valeurs sont difficiles à estimer de manière
+fiable et combinent donc l'information de Fisher avec la magnitude. Leur étude
+montre aussi que pruning et quantification peuvent être pensés conjointement.
+La validation initiale porte néanmoins sur un réseau convolutif et le jeu MNIST,
+ce qui impose de vérifier la transposition au texte.
+
+Molchanov et ses coauteurs cherchent ensuite à approximer plus directement la
+variation de la fonction de coût à l'aide d'un développement de Taylor du
+premier ordre \cite{molchanov2017pruning}. Le score combine l'activation d'un
+élément et le gradient qui lui est associé. Il évite le calcul d'une Hessienne
+et peut être appliqué à des structures telles que les filtres convolutifs. Dans
+leurs expériences, cette approximation offre un compromis favorable entre
+qualité du classement et coût de calcul. Elle suppose toutefois l'accès à des
+données et, lorsque le gradient provient de la fonction supervisée, à leurs
+étiquettes.
+
+Cette dépendance aux labels motive les travaux de Sapkota et Bhattarai
+\cite{sapkota2023random}. Les auteurs remplacent le gradient supervisé de
+sortie par un gradient aléatoire normalisé, puis propagent ce signal dans le
+réseau pour estimer l'importance des neurones. Le pruning peut ainsi utiliser
+des données sans annotations. Les résultats sont toutefois obtenus sur des
+réseaux de vision et publiés dans un article de workshop ; leur transposition à
+la classification de texte reste donc à évaluer.
+
+\subsubsection{Dépendance entre couches et information mutuelle}
+
+Les méthodes précédentes évaluent surtout la sensibilité de la fonction de coût
+à un poids ou à une activation. MINT, proposé par Ganesh, Corso et Yasaei Sekeh,
+change de point de vue en mesurant l'information transmise entre deux couches
+successives \cite{ganesh2020mint}. Un groupe d'unités est considéré comme
+important s'il apporte une information qui n'est pas déjà contenue dans les
+autres activations de la couche. La méthode vise ainsi à conserver les
+connexions qui participent le plus à la dépendance entre les représentations
+amont et aval.
+
+L'estimation directe de l'information mutuelle est difficile dans un espace de
+grande dimension. MINT s'appuie donc sur un estimateur géométrique qui évite de
+reconstruire explicitement les densités. Les travaux de Yasaei Sekeh et Hero
+fondent cette estimation sur une comparaison géométrique de populations au
+moyen d'un arbre couvrant minimal \cite{yasaei2019gmi}. La construction d'une
+population représentant l'indépendance conditionnelle utilise un bootstrap par
+plus proches voisins, relié aux travaux de Sen et ses coauteurs sur les tests
+d'indépendance conditionnelle \cite{sen2017ci}.
+
+Cette approche tient compte des activations et des relations entre couches,
+mais elle introduit de nouveaux choix : nombre d'exemples de calibration,
+constitution des groupes, seuil de suppression et protection des couches. Le
+calcul de nombreux scores géométriques peut également être coûteux. L'article
+original évalue principalement des architectures de vision, même s'il inclut
+un perceptron multicouche sur MNIST. La capacité de la méthode à se transposer à
+une tête de classification de texte n'est donc pas directement établie par les
+expériences publiées.
+
+Les travaux récents prolongent cette idée selon des objectifs différents. MIPP
+cherche à préserver l'information mutuelle entre les activations de couches
+adjacentes et relie cette conservation à la capacité de réentraîner le réseau
+après un pruning structuré \cite{westphal2025mipp}. Huang et Pao étudient plutôt
+la redondance interne des couches de représentation, mesurée par
+l'information mutuelle et la corrélation totale
+\cite{huang2025interpretable}. Leur méthode peut décider du pruning sans labels
+une fois le modèle entraîné. Ces contributions montrent que l'expression
+« pruning par information mutuelle » recouvre plusieurs buts : conserver
+l'information transmise, éliminer la redondance ou préserver l'information
+utile à la sortie. Ces objectifs ne conduisent pas nécessairement au même
+masque.
+
+\subsection{Positionnement et périmètre du travail}
+\label{ssec:etat_art_positionnement}
+
+Au terme de cette revue, deux constats orientent le travail. D'une part, une
+représentation contextuelle riche peut améliorer la classification, mais elle
+rend plus difficile l'étude isolée du classifieur. D'autre part, les critères de
+pruning forment une progression allant de scores locaux et peu coûteux vers des
+scores qui utilisent davantage d'information sur le comportement du réseau. La
+magnitude est simple mais indirecte ; OBD ajoute la courbure de la fonction de
+coût, tandis que MINT évalue la dépendance entre représentations successives.
+
+Le pipeline retenu privilégie donc une séparation explicite entre
+représentation et décision. Le texte est tokenisé en unités sous-lexicales avec
+le \gls{bpe}. Un modèle CBOW apprend un embedding de dimension 100 pour chaque
+unité, puis le backbone représente le texte par la moyenne de ces embeddings.
+Le vecteur obtenu est enfin transmis à une tête de classification multicouche.
+Cette moyenne fournit une représentation compacte et de taille fixe, mais elle
+perd l'ordre des unités : elle peut par exemple rapprocher \emph{ce film est
+bon} et \emph{ce film n'est pas bon} alors que leur polarité diffère.
+
+Le modèle d'embedding est préentraîné une fois, puis figé. Il n'est donc pas
+réentraîné lors de chaque classification. Il reste néanmoins exécuté pour les
+nouveaux textes, à travers la tokenisation, la consultation des embeddings et
+leur agrégation. Le backbone est conservé identique et n'est pas pruné dans les
+expériences : la variable étudiée est uniquement la tête. Ce choix maintient les
+représentations d'entrée constantes et permet d'attribuer les différences
+observées au critère de compression. Il impose en contrepartie de distinguer les
+gains mesurés sur la tête de ceux du pipeline complet.
+
+Le protocole compare principalement OBD et MINT sur la même tête dense initiale.
+Ces méthodes représentent deux conceptions différentes de l'importance : OBD
+estime l'effet local de la suppression d'un poids à partir de la courbure, alors
+que MINT s'appuie sur l'information transmise entre des activations. Le modèle
+est évalué immédiatement après l'élagage, puis après un réentraînement contraint
+par le masque. Une petite architecture dense entraînée directement fournit un
+point de comparaison à nombre de poids voisin.
+
+La comparaison porte sur des modèles produits à un niveau de \gls{sparsity}
+comparable, et non sur les valeurs brutes des scores, qui n'ont ni la même
+échelle ni la même granularité. L'application de MINT à une tête de
+classification de sentiments constitue une adaptation de travaux surtout
+évalués en vision. La distillation et le pruning sans annotations représentent
+des prolongements pertinents, mais ne font pas partie de la comparaison
+principale. Les conclusions concernent donc l'élagage d'une tête multicouche
+alimentée par des embeddings statiques ; elles ne prétendent pas désigner une
+méthode universellement optimale pour tous les modèles de \gls{nlp}.

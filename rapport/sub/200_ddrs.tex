@@ -1,18 +1,227 @@
 % -*- coding: utf-8 -*-
 % !TEX root = ../main.tex
 
-% TODO Annexe DDRS
+\subsection{Périmètre et sources de l'analyse}
+\label{ssec:ddrs_perimetre}
 
-%%%%%
-%%%%%
-%%%%%
+Cette annexe porte sur l'ENSIIE, établissement d'accueil du stage, et plus
+précisément sur le C19, où le projet a été réalisé. Elle s'appuie sur les
+documents publics de l'école : la page consacrée à sa démarche DD\&RS, son
+rapport d'activité DD\&RS 2022--2023, l'annonce du renouvellement de son label
+en 2025 et ses indicateurs sociaux. Ces documents sont complétés par des
+publications de l'ADEME, de l'Arcep, de l'Agence internationale de l'énergie et
+des ministères compétents. Ils permettent de distinguer les engagements
+institutionnels, les réalisations documentées et mon analyse personnelle de
+leurs limites \cite{ensiieDDRS2026,ensiieRapportDDRS2023,ensiieLabelDDRS2025}.
 
-\subsection{Développement durable}
+\subsection{Pressions exercées sur l'environnement}
+\label{ssec:ddrs_pressions}
 
-Un exemple sympa. \cite{cea-terathermie}
+\subsubsection{Enseignement supérieur, recherche et secteur numérique}
 
-%%%%%
-%%%%%
-%%%%%
+Une école d'ingénieurs en informatique exerce d'abord les pressions communes à
+tout établissement d'enseignement supérieur : chauffage et électricité des
+bâtiments, déplacements quotidiens et professionnels, restauration, achats et
+déchets. Sa spécialisation ajoute une dépendance forte aux équipements
+électroniques, aux réseaux et aux centres de données. Les impacts ne se
+limitent donc pas à l'électricité consommée pendant un calcul. La fabrication
+des ordinateurs et serveurs mobilise des métaux, des minerais, de l'eau, des
+plastiques et de l'énergie ; leur extraction et leur transformation contribuent
+aux émissions de gaz à effet de serre, à la pollution, à l'artificialisation
+des sols et à la dégradation d'écosystèmes. La fin de vie crée enfin des déchets
+électriques et électroniques dont le traitement est complexe.
 
-\subsection{Responsabilité sociétale}
+L'étude ADEME--Arcep estime qu'en 2022 le numérique représentait en France
+$29{,}5~\mathrm{MtCO_2e}$, soit $4{,}4\,\%$ de l'empreinte carbone nationale,
+et $51{,}5~\mathrm{TWh}$, soit $11\,\%$ de la consommation électrique. Elle
+attribue environ $50\,\%$ de l'empreinte carbone aux terminaux, $46\,\%$ aux
+centres de données et $4\,\%$ aux réseaux. La production des équipements
+mobiliserait en outre 117 millions de tonnes de ressources par an. Ces ordres
+de grandeur montrent que la prolongation de la durée de vie du matériel est au
+moins aussi importante que l'optimisation de son usage
+\cite{ademeEmpreinteNumerique2025}.
+
+L'intelligence artificielle accentue la pression sur les centres de données.
+À l'échelle mondiale, ceux-ci ont consommé environ $415~\mathrm{TWh}$ en 2024,
+soit $1{,}5\,\%$ de l'électricité mondiale. Le scénario central de l'Agence
+internationale de l'énergie atteint environ $945~\mathrm{TWh}$ en 2030, l'IA
+constituant le principal moteur de cette croissance avec les autres services
+numériques \cite{aieEnergyAI2025}. Cette hausse comporte également des enjeux
+locaux : puissance du réseau électrique, eau utilisée directement ou
+indirectement pour le refroidissement, emprise foncière et conflits d'usage.
+
+Les chiffres souvent associés à ChatGPT doivent néanmoins être maniés avec
+précaution. Le rapport de l'Arcep publié en 2026 recense, selon les modèles et
+les méthodes de calcul, des estimations allant approximativement de
+$0{,}3$ à $4~\mathrm{Wh}$ par requête. Cette amplitude ne décrit pas une valeur
+universelle : la longueur de la réponse, le matériel, le regroupement des
+requêtes, l'architecture et le lieu d'exécution changent le résultat. Le même
+rapport donne $1\,287~\mathrm{MWh}$ et $552~\mathrm{tCO_2e}$ pour
+l'entraînement de GPT-3, contre $433~\mathrm{MWh}$ et $30~\mathrm{tCO_2e}$
+pour BLOOM, deux modèles d'environ 175 milliards de paramètres. La différence
+illustre le rôle du matériel, du centre de données et du mix électrique, et
+montre pourquoi le nombre de paramètres ne constitue pas à lui seul une mesure
+environnementale \cite{arcepIAEnvironnement2026}.
+
+\subsubsection{Spécificités de l'ENSIIE et du C19}
+
+À l'ENSIIE, les postes de travail, les salles d'enseignement, les serveurs et
+les déplacements constituent les principales sources directes ou indirectes
+de pression attendues. Le C19 concentre certaines d'entre elles : l'école y
+présente un centre de données, un parc informatique, des équipements de
+réalité virtuelle et augmentée, deux salles immersives, ainsi que des espaces
+de travail pour des projets et des jeunes entreprises. Ces ressources sont
+cohérentes avec une activité de formation et d'innovation, mais leur
+fabrication, leur renouvellement et leur utilisation doivent être inclus dans
+l'empreinte du site \cite{ensiieC19}.
+
+\subsubsection{Spécificités de l'équipe et de la mission}
+
+La mission a mobilisé un poste CPU, du stockage local et une succession
+d'entraînements et d'évaluations. Elle reste sans commune mesure avec
+l'entraînement d'un grand modèle de langage : le corpus contient quelques
+dizaines de milliers de textes, le backbone CBOW est de petite taille et les
+expériences finales ont été exécutées sans GPU.
+
+\subsection{Cadre réglementaire et institutionnel}
+\label{ssec:ddrs_reglementation}
+
+Plusieurs textes encadrent ces pressions, avec des niveaux d'obligation
+différents.
+
+Le dispositif Éco Énergie Tertiaire, issu de la loi Élan, concerne les
+bâtiments ou ensembles de bâtiments accueillant au moins $1\,000~\mathrm{m^2}$
+d'activités tertiaires, notamment l'enseignement et les salles informatiques.
+Il fixe une réduction de la consommation d'énergie finale d'au moins
+$40\,\%$ en 2030, $50\,\%$ en 2040 et $60\,\%$ en 2050 par rapport à 2010,
+avec un suivi annuel sur la plateforme OPERAT
+\cite{ecologieEcoEnergieTertiaire2025}.
+
+Pour le numérique, la loi visant à réduire son empreinte environnementale a
+conduit au Référentiel général d'écoconception des services numériques. Le
+RGESN propose 78 critères portant notamment sur l'utilité du service,
+l'architecture, l'hébergement, la limitation des ressources et la transparence
+environnementale. Il constitue un cadre opérationnel pertinent pour les
+logiciels et prototypes de recherche, même lorsque ceux-ci ne sont pas encore
+des services déployés \cite{arcepRGESN2024}.
+
+\subsection{Politique et actions de l'ENSIIE}
+\label{ssec:ddrs_politique_ensiie}
+
+\subsubsection{Gouvernance et communication}
+
+L'ENSIIE s'est dotée d'une charte DD\&RS en 2019. Sa démarche est portée par
+la direction, une personne chargée de mission et un comité de pilotage associant
+plusieurs parties prenantes. Elle couvre les cinq axes du référentiel national :
+stratégie et gouvernance, formation, recherche, environnement et politique
+sociale. L'école a obtenu le renouvellement de son label DD\&RS en 2025 pour
+quatre ans. L'audit met notamment en avant la gouvernance, l'implication des
+élèves, la recherche liée à la transition, la végétalisation, la démarche bas
+carbone et la politique sociale \cite{ensiieLabelDDRS2025}.
+
+\subsubsection{Fonctionnement du campus}
+
+La charte prévoit de rationaliser l'énergie, l'eau et les matériaux, de
+poursuivre la rénovation énergétique, de réaliser des diagnostics écologiques,
+d'adopter des achats durables, d'organiser le tri par filières et de travailler
+sur les déplacements. Parmi les réalisations publiées figurent un bilan carbone
+portant sur 2018, un plan de mobilité inter-établissements, des poubelles de tri,
+un atelier de réparation informatique et la revégétalisation du square. Ces
+actions couvrent à la fois la sobriété d'usage, la durée de vie du matériel et
+la biodiversité locale \cite{ensiieDDRS2026,ensiieRapportDDRS2023}.
+
+\subsubsection{Formation, recherche et sensibilisation}
+
+L'intégration au cœur de métier est plus structurante que les seuls éco-gestes.
+Le rapport 2022--2023 indique que tous les élèves ont suivi un enseignement
+DD\&RS depuis 2019 et que 170 élèves ont participé à la rentrée climat. Il cite
+des Fresques du climat, des ateliers 2tonnes, un cours sur les impacts
+environnementaux du numérique et des travaux menés avec la ville
+d'Évry-Courcouronnes. Du côté de la recherche, onze enseignants-chercheurs
+avaient déclaré des thématiques liées au DD\&RS ; l'école participait également
+à Labos 1point5 et au GDS EcoInfo. Le C19 relie enfin recherche, innovation et
+territoire, ce que l'audit de 2025 identifie comme un point fort
+\cite{ensiieRapportDDRS2023,ensiieLabelDDRS2025}.
+
+Les documents établissent donc l'existence d'une offre de sensibilisation. En
+revanche, aucune session DD\&RS propre à la courte période de ce stage
+n'apparaît dans le planning ou les artefacts du projet. Pour cette mission, la
+sensibilisation a surtout été indirecte, par l'étude du compromis entre qualité
+et ressources. Ce décalage constitue un point d'amélioration : un module bref
+d'accueil, accessible aussi aux stagiaires et intervenants temporaires,
+permettrait de présenter la politique du site, les consignes locales et la
+méthode de mesure attendue pour les projets numériques.
+
+\subsection{Lien entre la mission et la stratégie environnementale}
+\label{ssec:ddrs_lien_mission}
+
+La compression étudiée relève de l'écoconception algorithmique : réduire les
+paramètres peut limiter mémoire et calcul en inférence
+\cite{arcepIAEnvironnement2026}. Les masques OBD et MINT suppriment environ la
+moitié des poids de H2, mais le format dense conserve la même taille et la même
+latence. À l'inverse, l'architecture compacte M4 réduit la taille du pipeline de
+$34{,}95\,\%$ et sa latence bout en bout de $12{,}83\,\%$.
+
+Le coût de calcul doit aussi être compté : le scoring H2 demande $1{,}41$~s avec
+OBD contre $230{,}1$~s avec MINT. Comme aucune énergie n'a été mesurée, ces
+résultats décrivent un potentiel de réduction, et non une économie en
+kilowattheures ou en émissions.
+
+\subsection{Responsabilité sociétale et usages du modèle}
+\label{ssec:ddrs_responsabilite}
+
+\subsubsection{Données, vie privée et biais}
+
+Le corpus Hugging Face est sous licence Apache~2.0, mais sa provenance, son
+annotation et sa population sont peu documentées
+\cite{huggingfaceSentiment2023}.
+
+Le RGPD reste applicable aux données publiques : les fichiers doivent être
+contrôlés, minimisés et conservés pendant la seule durée utile
+\cite{cnilDonneesInternet2024}.
+
+La conversion en classification binaire et l'absence de métadonnées empêchent
+un audit fiable des biais ; un déploiement réel nécessiterait des données
+représentatives, une documentation des erreurs et une supervision humaine.
+
+\subsubsection{Politique sociale de l'établissement}
+
+La politique sociale de l'ENSIIE couvre égalité, diversité, accessibilité et
+prévention des violences. Les indicateurs disponibles mentionnent $20\,\%$ de
+femmes parmi les élèves, $18\,\%$ parmi les diplômés 2024--2025 et un écart de
+salaire moyen d'environ $4{,}5\,\%$ en 2023
+\cite{ensiieIndicateursDDRS2026}.
+
+Ces indicateurs rendent le suivi possible, mais confirment que la féminisation
+et l'inclusion restent des objectifs à poursuivre.
+
+\subsection{Analyse critique et leviers d'amélioration}
+\label{ssec:ddrs_critique}
+
+L'ENSIIE dispose d'une gouvernance DD\&RS structurée et d'actions dans la
+formation, la recherche et le campus.
+
+La limite principale est l'absence de séries publiques récentes sur l'énergie,
+l'eau, les mobilités, les achats et le numérique, qui empêche de mesurer les
+effets réels des actions.
+
+Trois leviers permettraient d'aller plus loin :
+
+\begin{enumerate}
+    \item \textbf{Mesurer et publier une trajectoire.} Un bilan annuel par
+    grands postes, rapporté aux usagers et aux surfaces, rendrait les progrès
+    vérifiables.
+
+    \item \textbf{Piloter le numérique du C19.} La durée de vie, la réparabilité,
+    l'énergie et la fin de vie du matériel et du centre de données devraient être
+    suivies par des indicateurs.
+
+    \item \textbf{Documenter les projets d'IA.} Une fiche devrait regrouper
+    ressources, données, essais, usages, biais et point d'amortissement, et
+    vérifier les gains avec un format réellement compact.
+
+\end{enumerate}
+
+Le projet confirme qu'une sparsité théorique ne devient un gain environnemental
+que si le matériel ou le moteur d'exécution l'exploite ; une mesure énergétique
+directe reste nécessaire.

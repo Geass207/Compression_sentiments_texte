@@ -1,27 +1,141 @@
 % -*- coding: utf-8 -*-
 % !TEX root = ../main.tex
 
-\subsection{Conclusion}\label{ssec:conclusion_conclusion}
+\subsection{Conclusion}
+\label{ssec:conclusion_conclusion}
 
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
+Ce travail avait pour objectif d'étudier le compromis entre qualité de
+classification, mémoire et calcul lors de la compression d'une tête de
+classification de sentiments. Un pipeline reproductible a été construit autour
+d'un tokenizer BPE, d'un backbone CBOW figé et de deux têtes neuronales. Cette
+séparation a permis de modifier uniquement le classifieur tout en conservant
+exactement les mêmes représentations d'entrée. Deux critères de pruning ont été
+comparés : OBD, fondé sur une approximation diagonale de la Hessienne de la
+loss, et MINT, fondé sur une estimation géométrique de l'information mutuelle
+conditionnelle entre activations.
 
-\subsection{Retours d'expérience}\label{ssec:conclusion_retours}
+Les expériences montrent qu'une cible proche de $50\,\%$ de poids supprimés est
+compatible avec le maintien de la performance finale. Sur cinq graines,
+H1/OBD-M3 atteint un F1 de $0{,}7512\pm0{,}0048$ contre
+$0{,}7456\pm0{,}0048$ pour M1. Sur H2, MINT-M3 atteint
+$0{,}7430\pm0{,}0101$ contre $0{,}7321\pm0{,}0082$. Les intervalles des
+différences appariées contiennent néanmoins zéro et de faibles valeurs
+négatives. Avec cinq graines,
+les résultats sont donc compatibles avec une légère baisse, une absence d'effet
+ou une hausse du F1 ; ils ne démontrent formellement ni une amélioration, ni une
+non-dégradation, ni un effet de régularisation dû au seul masque. MINT se
+distingue par une forte fragilité immédiate : avant
+réentraînement, son F1 moyen tombe à $0{,}2028\pm0{,}0938$. OBD produit un
+masque directement plus stable et son scoring est environ 163 fois plus rapide
+que celui de MINT sur H2.
 
-% TODO Vos retours d'expérience : ce que vous avez appris/découvert
+La conclusion la plus importante concerne la différence entre sparsité et
+compression déployable. Les masques divisent par deux le nombre idéal de
+paramètres et de MAC de la tête, mais ils ne changent ni la forme des tenseurs,
+ni la taille de l'artefact dense, ni sa latence. La petite architecture M4,
+entraînée directement, obtient un F1 moyen de $0{,}7345\pm0{,}0100$ sur H2
+tout en réduisant
+réellement la taille de l'artefact de $34{,}95\,\%$ et la latence bout en bout
+de $12{,}83\,\%$. Dans l'environnement actuel, M4 offre donc le compromis le
+plus immédiatement exploitable. OBD et MINT identifient des sous-réseaux
+performants, mais leur potentiel ne deviendra un gain matériel qu'après une
+conversion vers une représentation ou une architecture qui exploite les zéros.
 
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
+\subsection{Retours d'expérience}
+\label{ssec:conclusion_retours}
 
-\subsection{Perspectives}\label{ssec:conclusion_perspectives}
+Ce projet a d'abord mis en évidence l'importance de formaliser précisément ce
+que signifie \emph{comprimer}. Compter les poids non nuls est utile pour
+comparer les masques, mais ne renseigne pas à lui seul sur la mémoire physique
+ou le temps d'exécution. L'ajout de deux vues --- tête seule et pipeline complet
+--- puis de mesures de latence et de stockage a évité de confondre un gain
+algorithmique idéal avec un gain effectivement obtenu.
 
-% TODO Les perspectives d'amélioration ou d'utilisation de votre programme/de ce que vous avez développé
+La mise en œuvre d'OBD a permis d'approfondir l'autodifférentiation d'ordre
+deux, les produits Hessienne--vecteur et l'estimation stochastique de la
+diagonale. Celle de MINT a demandé de relier une définition informationnelle à
+des objets calculables : activations standardisées, bootstrap conditionnel par
+plus proche voisin et statistique de Friedman--Rafsky sur un arbre couvrant
+minimal. Leur comparaison a aussi montré qu'une méthode plus riche
+conceptuellement n'est pas automatiquement plus efficace : le coût de scoring,
+la sensibilité au masque et le besoin de réentraînement font partie intégrante
+du bilan.
 
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
+Enfin, la construction d'un pipeline unique, appuyé sur une configuration
+centralisée et des artefacts archivés, a renforcé la reproductibilité du
+travail. La principale difficulté n'a pas seulement été d'obtenir une bonne
+métrique, mais de garantir que les modèles comparés utilisent les mêmes données,
+le même backbone, la même cible de capacité et des définitions cohérentes de la
+complexité.
+
+\subsection{Perspectives}
+\label{ssec:conclusion_perspectives}
+
+La première perspective est statistique. Les cinq graines actuelles pourraient
+être étendues à un effectif plus important, puis complétées par plusieurs splits
+ou une validation croisée afin de ne plus conditionner l'analyse à un unique
+jeu de test et à un unique W1. Le batch de scoring OBD devra être tiré
+explicitement, et les scores MINT devront être moyennés sur plusieurs partitions
+afin d'estimer leur stabilité interne. Une correction des comparaisons multiples
+et une calibration du seuil de classification sur la validation permettraient
+également de séparer la perte de classement d'un simple déplacement des
+probabilités après pruning.
+
+La deuxième perspective consiste à transformer la sparsité en gain physique.
+Trois voies peuvent être comparées : stockage sparse des matrices, noyaux
+d'inférence spécialisés et pruning structuré supprimant des groupes complets
+d'unités. Cette dernière solution permettrait de reconstruire une tête compacte
+à partir du masque, puis de la comparer à M4 à dimensions et conditions
+d'entraînement contrôlées. Les mesures devraient alors couvrir plusieurs tailles
+de batch, le CPU et le GPU, la mémoire maximale et, si possible, l'énergie
+consommée.
+
+La troisième perspective concerne les critères de scoring. Le calcul MINT
+actuel répète une estimation géométrique pour chaque couple unité--groupe. La
+mise en cache des distances, la parallélisation des blocs ou la réduction de
+dimension du conditionnement pourraient diminuer ses $230$ secondes de
+scoring. Plus généralement, OBD et MINT pourraient être comparés à des scores
+fondés sur la magnitude, sur une approximation du premier ordre par le gradient,
+sur l'information de Fisher ou sur une approximation tenant compte des termes
+hors diagonale de la Hessienne. Des critères directement définis sur des
+neurones ou des blocs seraient également cohérents avec l'objectif d'obtenir
+une architecture physiquement compacte. La comparaison devrait conserver la
+même sparsité cible, le même budget de réentraînement et les mêmes graines.
+
+Une autre limite importante se situe avant la tête de classification. Le
+pipeline représente actuellement un texte par la moyenne des embeddings de ses
+unités BPE. Cette opération est simple et peu coûteuse, mais elle est invariante
+à leur permutation : les phrases « le chien mord l'homme » et « l'homme mord le
+chien » produiraient le même vecteur si elles contenaient exactement les mêmes
+unités. Or leur interprétation dépend de l'ordre. Il serait donc pertinent de
+comparer la moyenne à une agrégation attentive munie d'informations de position,
+à un réseau convolutif capturant des motifs locaux, ou à un encodeur récurrent
+de type GRU ou LSTM. Ces méthodes remplaceraient le sac d'embeddings actuel par
+une représentation sensible à la séquence.
+
+Cette évolution permettrait aussi d'étudier des têtes plus avancées, notamment
+un encodeur Transformer. Pour exploiter réellement l'ordre, celui-ci ne devrait
+pas recevoir le vecteur déjà moyenné, mais la séquence des embeddings W1,
+complétée par un encodage positionnel, puis produire une représentation globale
+par attention ou par un jeton dédié à la classification. W1 pourrait rester
+figé, conformément au périmètre du projet, tandis que le Transformer ferait
+partie de la tête à comprimer. Une telle architecture augmenterait cependant
+le coût initial du classifieur ; son gain de qualité devrait donc être rapporté
+à sa mémoire, à ses opérations et à sa latence réelles.
+
+Le cadre expérimental pourrait enfin être étendu au multiclasse. Le problème
+actuel possède déjà deux classes, positive et négative, car les exemples neutres
+ont été retirés. Une première extension naturelle consisterait à les réintroduire
+pour obtenir $K=3$, puis à considérer des jeux comportant davantage de classes.
+La tête produirait alors un logit par classe et serait entraînée avec une
+cross-entropy multiclasse. Le macro-F1, les rappels par classe et la matrice de
+confusion deviendraient essentiels pour vérifier qu'un score de pruning ne
+préserve pas seulement les classes majoritaires.
+
+Une direction distincte consisterait à remplacer W1 par des représentations
+contextuelles préentraînées. Le backbone devrait toujours rester identique entre
+les variantes afin de conserver l'interprétabilité de la comparaison. Cette
+extension permettrait de vérifier si les conclusions obtenues avec CBOW ---
+redondance importante de la tête, nécessité de cicatrisation et écart entre
+sparsité théorique et vitesse réelle --- se maintiennent lorsque les
+représentations d'entrée sont elles-mêmes sensibles au contexte.

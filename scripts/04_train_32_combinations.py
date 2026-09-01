@@ -12,20 +12,26 @@ from src.pruning import (
     iterative_prune_classifier_weights,
     obd_classifier_weight_scores,
 )
+from src.experiment_config import (
+    CLASSIFIER_BATCH_SIZE,
+    CLASSIFIER_EPOCHS,
+    CLASSIFIER_LEARNING_RATE,
+    CLASSIFIER_PATIENCE,
+    HEAD_ARCHITECTURES,
+    OBD_HESSIAN_VECTORS,
+    OBD_PRUNING_STEP,
+    OBD_RETRAINING_EPOCHS,
+    SEED,
+)
 
 
 WORD2VEC_CODE = "W1"
-HEAD_ARCHITECTURES = {
-    "H1": {"full": (128,), "direct": (64,)},
-    "H2": {"full": (128, 64), "direct": (64, 64)},
-}
-PRUNING_STEP = 0.10
-BATCH_SIZE = 256
-TRAINING_EPOCHS = 30
-RETRAINING_EPOCHS = 3
-LEARNING_RATE = 1e-3
-PATIENCE = 4
-SEED = 42
+PRUNING_STEP = OBD_PRUNING_STEP
+BATCH_SIZE = CLASSIFIER_BATCH_SIZE
+TRAINING_EPOCHS = CLASSIFIER_EPOCHS
+RETRAINING_EPOCHS = OBD_RETRAINING_EPOCHS
+LEARNING_RATE = CLASSIFIER_LEARNING_RATE
+PATIENCE = CLASSIFIER_PATIENCE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -136,6 +142,7 @@ for word2vec_code in (WORD2VEC_CODE,):
                 pruning_step=PRUNING_STEP,
                 retraining_epochs=RETRAINING_EPOCHS,
                 batch_size=BATCH_SIZE,
+                hessian_vectors=OBD_HESSIAN_VECTORS,
                 lr=LEARNING_RATE,
                 patience=None,
             )
@@ -158,6 +165,7 @@ for word2vec_code in (WORD2VEC_CODE,):
                         "mean_pruned_score": step[
                             "pruned_scores"
                         ].mean().item(),
+                        "scoring_seconds": step["scoring_seconds"],
                         **metrics,
                     }
                 )
@@ -238,7 +246,12 @@ for word2vec_code in (WORD2VEC_CODE,):
                 "word2vec_training_parameters": word2vec_training_parameters,
                 "word2vec_inference_parameters": word2vec_inference_parameters,
                 "head_parameters": head_parameters,
+                "head_total_weights": weight_count,
                 "head_active_weights": active_weights,
+                "head_bias_parameters": bias_count,
+                "head_effective_parameters": active_weights + bias_count,
+                "head_dense_macs": weight_count,
+                "head_effective_macs": active_weights,
                 "stored_inference_parameters": (
                     word2vec_inference_parameters + head_parameters
                 ),

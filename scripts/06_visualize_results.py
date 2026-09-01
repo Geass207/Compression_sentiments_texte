@@ -29,8 +29,8 @@ mint_training_history = pd.read_csv("artifacts/mint_training_history.csv")
 test = pd.read_pickle("artifacts/test_encoded.pkl")
 test_labels = test["sentiment"].to_numpy()
 
-figures_dir = Path("figures")
-figures_dir.mkdir(exist_ok=True)
+figures_dir = Path("figures") / "experimentales"
+figures_dir.mkdir(parents=True, exist_ok=True)
 
 # Visualisations par tête de classification (H1 et H2)
 for head in ("H1", "H2"):
@@ -126,4 +126,7 @@ plot_adjusted_loss_benchmark(
     alpha=ADJUSTED_LOSS_ALPHA,
 )
 
-print("Toutes les figures ont été générées avec succès dans 'figures/'.")
+print(
+    "Les figures expérimentales historiques ont été générées "
+    "dans 'figures/experimentales/'."
+)

@@ -37,16 +37,16 @@
 %     optimize command away=\AddToShipoutPictureBG
 % ] % Chemin du dossier qui contient les graphiques TikZ
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%% MÉTADONNÉES %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%
 %%% TODO
 %%% Standard macros
-\title{Sujet de stage} % Sujet du stage
-\author{Prénom NOM} % Prénom NOM de l'étudiant(e)
-\date{Jour1 AA mois1 20XX au jour2 BB mois2 20YY} % Dates du stage
+\title{Compression de modèles de classifications de sentiments de textes} % Sujet du stage
+\author{Mohamed KASSOUL} % Prénom NOM de l'étudiant(e)
+\date{Mecredi 1er juillet 2026 au mardi 25 août 2026} % Dates du stage
 %%%%%%%
 
 %%%%%%%%
@@ -55,12 +55,12 @@
 %%% - template utilisé pour autre chose qu'un rapport de stage
 %%% - classe [ensiie-report] non utilisée
 % \subtitle{Sous-titre} % Sous-titre facultatif, pour préciser le sujet ou l'écrire dans une autre langue
-\years{20XX-20YY} % Année scolaire en cours
+\years{2026-2027} % Année scolaire en cours
 \logoSchool{img/logo_ensiie.png} % Chemin vers le logo de l'ensIIE (ex : img/logo_ensiie.png)
-\logoEnterprise{example-image-a} % Chemin vers le logo de l'entreprise du stage (ex : img/logo_entreprise.png)
-\academicSupervisor{Prénom NOM} % Tuteur de stage
-\internshipSupervisor{Prénom NOM} % Maître de stage
-\internshipEnterprise{Entreprise (Ville, département)} % Lieu du stage
+\logoEnterprise{img/ensiie_campus.jpg} % Chemin vers le logo de l'entreprise du stage (ex : img/logo_entreprise.png)
+\academicSupervisor{Mathilde MOUGEOT} % Tuteur de stage
+\internshipSupervisor{Mounir ATIQ} % Maître de stage
+\internshipEnterprise{ensIIE (Évry-Courcouronnes, Essonne)} % Lieu du stage
 %%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,6 +68,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
+
+\hypersetup{pageanchor=false}
 
 % \newgeometry{hmargin=2.5cm,vmargin=2.5cm} % Changer les marges de la page de garde
 \AddToShipoutPictureBG{\BackgroundPicFirstPage} % Pour activer le remplissage de la première page par le background choisi (dépend de l'entreprise définie dans la classe ensiie-report)
@@ -83,6 +85,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagenumbering{roman}
+\hypersetup{pageanchor=true}
 \pagestyle{FirstPages}
 
 \section*{Remerciements}\label{sec:remerciements}
@@ -156,21 +159,48 @@
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%% CONTEXTE %%%%%%%%%%%
+%%%%%%%% CADRE DU STAGE %%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Contexte}\label{sec:contexte}
+\section{Cadre du stage}\label{sec:cadre_stage}
 
 \input{sub/110_contexte.tex}
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%% TRAVAUX RÉALISÉS %%%%%%%
+%%% MOTIVATIONS ET ÉTAT DE L'ART %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Travaux réalisés}\label{sec:travaux_realises}
+\section{Motivations et état de l'art}\label{sec:motivations_etat_art}
 
-\input{sub/120_travaux_realises.tex}
+\input{sub/115_motivations_etat_art.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% SYNTHÈSE DU PIPELINE %%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Synthèse du pipeline}\label{sec:synthese_pipeline}
+
+\input{sub/117_synthese_pipeline.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% FORMULATION DU PROBLÈME %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Formulation du problème}\label{sec:formulation_probleme}
+
+\input{sub/120_formulation_probleme.tex}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% MÉTHODOLOGIE %%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Méthodologie}\label{sec:methodologie}
+
+\input{sub/125_methodologie.tex}
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,15 +229,6 @@
 \section{Développement durable et responsabilité sociétale}\label{sec:ddrs}
 
 \input{sub/200_ddrs.tex}
-\newpage
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% ORGANISATION DE L'ENTREPRISE %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Organisation de l'entreprise}\label{sec:organisation}
-
-\input{sub/210_organisation.tex}
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

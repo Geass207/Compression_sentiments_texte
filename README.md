@@ -16,7 +16,9 @@ Compression/
 │   ├── 03_train_word2vec_variants.py
 │   ├── 04_train_32_combinations.py
 │   ├── 05_mint.py
-│   └── 06_visualize_results.py
+│   ├── 06_visualize_results.py
+│   ├── 07_generate_report_figures.py
+│   └── 08_repeat_experiments.py
 ├── src/                    # Code source modulaire
 │   ├── classifier.py       # Architecture et entraînement des Sentiment Heads
 │   ├── pruning.py          # Fonctions OBD, calcul d'Hessienne et boucles d'élagage
@@ -73,15 +75,28 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
    # Étape 5 : Pruning MINT one-shot de la tête H2 avec W1 complet
    python scripts/05_mint.py
 
-   # Étape 6 : Génération des graphiques et courbes de performance
+   # Étape 6 : Génération des graphiques expérimentaux existants
    python scripts/06_visualize_results.py
+
+   # Étape 7 : Figures de synthèse, séparées par nature
+   python scripts/07_generate_report_figures.py
+
+   # Étape 8 indépendante : répétitions sur cinq graines et agrégation
+   python scripts/08_repeat_experiments.py
+
+L'étape 8 réutilise W1, les vecteurs et les partitions déjà produits. Elle
+n'écrase aucun résultat du run principal : les valeurs individuelles, les
+moyennes, écarts-types, variances, intervalles de confiance à 95 % et
+différences appariées sont enregistrés dans `artifacts/repeated_runs/`. Une
+graine déjà terminée est ignorée lors d'une reprise ; l'option
+`--rerun-completed` force son recalcul.
 
 ---
 
 ## Variantes & Modèles Évalués
 
 ### Word2Vec (CBOW)
-- W1 : unique modèle complet partagé par toutes les expériences (dim = 200).
+- W1 : unique modèle complet partagé par toutes les expériences (dim = 100).
 
 ### Têtes de classification (Sentiment Heads)
 - M1 : Architecture complète de référence.
@@ -92,7 +107,7 @@ Si tu souhaites exécuter ou débugger chaque script individuellement depuis la 
 - MINT-M3 : Même masque MINT, suivi d'un réentraînement avec poids masqués figés.
 
 Le pruning MINT est appliqué uniquement à la tête H2. Le checkpoint Word2Vec
-W1 reste complet en dimension 200 et n'est jamais modifié par cette étape.
+W1 reste complet en dimension 100 et n'est jamais modifié par cette étape.
 
 ---
 
@@ -101,4 +116,7 @@ W1 reste complet en dimension 200 et n'est jamais modifié par cette étape.
 - F1-score vs Nombre de paramètres effectifs.
 - Loss Ajustée : Pénalisation de la complexité via Loss_ajustee = Loss + alpha * (P / P_max).
 - Comparaison dédiée de la loss ajustée entre H2-M1, MINT-M2 et MINT-M3
-  dans `figures/adjusted_loss_mint_W1_H2.png` (alpha = 0.4).
+  dans `figures/experimentales/adjusted_loss_mint_W1_H2.png` (alpha = 0.4).
+- Les courbes déduites uniquement des dimensions et des masques sont rangées
+  dans `figures/theoriques/`; les courbes utilisant qualité, loss, temps ou
+  stockage mesuré sont rangées dans `figures/experimentales/`.

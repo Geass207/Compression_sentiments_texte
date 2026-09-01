@@ -1,0 +1,35 @@
+{
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "heads": [
+    "H1",
+    "H2"
+  ],
+  "fixed_word2vec": "W1",
+  "fixed_data_splits": true,
+  "device": "cpu",
+  "initial_epochs": 30,
+  "classifier_batch_size": 256,
+  "classifier_learning_rate": 0.001,
+  "classifier_patience": 4,
+  "obd_hessian_vectors": 10,
+  "obd_pruning_step": 0.1,
+  "obd_retraining_epochs": 3,
+  "mint_enabled": true,
+  "mint_groups_per_layer": [
+    10,
+    16,
+    8
+  ],
+  "mint_samples_per_class": 96,
+  "mint_partition_size": 64,
+  "mint_maximum_pruning_fraction": 0.8,
+  "mint_retraining_epochs": 10,
+  "dense_controls": true,
+  "adjustment_alpha": 0.4
+}

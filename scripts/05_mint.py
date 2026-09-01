@@ -20,24 +20,36 @@ from src.mint import (
     mint_group_scores,
     mint_weight_mask,
 )
+from src.experiment_config import (
+    CLASSIFIER_BATCH_SIZE,
+    CLASSIFIER_LEARNING_RATE,
+    CLASSIFIER_PATIENCE,
+    EMBEDDING_DIM,
+    HEAD_ARCHITECTURES,
+    MINT_GROUPS_PER_LAYER,
+    MINT_MAXIMUM_PRUNING_FRACTION,
+    MINT_PARTITION_SIZE,
+    MINT_RETRAINING_EPOCHS,
+    MINT_SAMPLES_PER_CLASS,
+    SEED,
+)
 
 
 WORD2VEC_CODE = "W1"
 HEAD_CODE = "H2"
-EXPECTED_INPUT_DIM = 200
-EXPECTED_HIDDEN_DIMS = (128, 64)
-DIRECT_HIDDEN_DIMS = (64, 64)
+EXPECTED_INPUT_DIM = EMBEDDING_DIM
+EXPECTED_HIDDEN_DIMS = HEAD_ARCHITECTURES[HEAD_CODE]["full"]
+DIRECT_HIDDEN_DIMS = HEAD_ARCHITECTURES[HEAD_CODE]["direct"]
 
-DEFAULT_GROUPS_PER_LAYER = (20, 16, 8)
-DEFAULT_SAMPLES_PER_CLASS = 96
-DEFAULT_PARTITION_SIZE = 64
-DEFAULT_MAXIMUM_PRUNING_FRACTION = 0.80
-DEFAULT_RETRAINING_EPOCHS = 10
+DEFAULT_GROUPS_PER_LAYER = MINT_GROUPS_PER_LAYER
+DEFAULT_SAMPLES_PER_CLASS = MINT_SAMPLES_PER_CLASS
+DEFAULT_PARTITION_SIZE = MINT_PARTITION_SIZE
+DEFAULT_MAXIMUM_PRUNING_FRACTION = MINT_MAXIMUM_PRUNING_FRACTION
+DEFAULT_RETRAINING_EPOCHS = MINT_RETRAINING_EPOCHS
 
-BATCH_SIZE = 256
-LEARNING_RATE = 1e-3
-PATIENCE = 4
-SEED = 42
+BATCH_SIZE = CLASSIFIER_BATCH_SIZE
+LEARNING_RATE = CLASSIFIER_LEARNING_RATE
+PATIENCE = CLASSIFIER_PATIENCE
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,7 +65,12 @@ def parse_args() -> argparse.Namespace:
         nargs=3,
         default=DEFAULT_GROUPS_PER_LAYER,
         metavar=("G0", "G1", "G2"),
-        help="Nombre de groupes pour les transitions 200→128, 128→64 et 64→1.",
+        help=(
+            "Nombre de groupes amont pour les trois transitions de H2 : "
+            f"{EXPECTED_INPUT_DIM}→{EXPECTED_HIDDEN_DIMS[0]}, "
+            f"{EXPECTED_HIDDEN_DIMS[0]}→{EXPECTED_HIDDEN_DIMS[1]} et "
+            f"{EXPECTED_HIDDEN_DIMS[1]}→1."
+        ),
     )
     parser.add_argument(
         "--samples-per-class",
@@ -111,13 +128,18 @@ def validate_args(args: argparse.Namespace) -> None:
 
 
 def validate_full_word2vec(checkpoint: dict, vector_dimension: int) -> None:
-    """Vérifie que W1 est bien le Word2Vec complet non pruné de dimension 200."""
+    """Vérifie que W1 est le Word2Vec complet à la dimension attendue."""
     if checkpoint.get("variant") != WORD2VEC_CODE:
         raise ValueError("Le checkpoint Word2Vec chargé n'est pas W1.")
     if checkpoint.get("embedding_dim") != EXPECTED_INPUT_DIM:
-        raise ValueError("W1 n'a pas la dimension complète attendue de 200.")
+        raise ValueError(
+            f"W1 n'a pas la dimension complète attendue de {EXPECTED_INPUT_DIM}."
+        )
     if vector_dimension != EXPECTED_INPUT_DIM:
-        raise ValueError("Les vecteurs W1 fournis à la tête n'ont pas 200 dimensions.")
+        raise ValueError(
+            "Les vecteurs W1 fournis à la tête n'ont pas "
+            f"{EXPECTED_INPUT_DIM} dimensions."
+        )
 
     kept_dimensions = torch.as_tensor(checkpoint.get("kept_original_dimensions"))
     expected_dimensions = torch.arange(EXPECTED_INPUT_DIM)
@@ -127,7 +149,9 @@ def validate_full_word2vec(checkpoint: dict, vector_dimension: int) -> None:
     model_state = checkpoint["model_state"]
     for embedding_name in ("input_embeddings.weight", "output_embeddings.weight"):
         if model_state[embedding_name].shape[1] != EXPECTED_INPUT_DIM:
-            raise ValueError(f"{embedding_name} n'a pas 200 colonnes.")
+            raise ValueError(
+                f"{embedding_name} n'a pas {EXPECTED_INPUT_DIM} colonnes."
+            )
 
 
 def classifier_weight_names(model: SentimentHead) -> list[str]:
@@ -216,7 +240,12 @@ def result_row(
         "word2vec_training_parameters": 2 * word2vec_inference_parameters,
         "word2vec_inference_parameters": word2vec_inference_parameters,
         "head_parameters": head_parameters,
+        "head_total_weights": weight_count,
         "head_active_weights": active_weights,
+        "head_bias_parameters": bias_count,
+        "head_effective_parameters": active_weights + bias_count,
+        "head_dense_macs": weight_count,
+        "head_effective_macs": active_weights,
         "stored_inference_parameters": word2vec_inference_parameters + head_parameters,
         "effective_parameters": word2vec_inference_parameters + active_weights + bias_count,
     }
@@ -304,7 +333,10 @@ def main() -> None:
     word2vec_inference_parameters = word2vec_checkpoint["model_state"][
         "input_embeddings.weight"
     ].numel()
-    print("W1 vérifié : Word2Vec complet, non pruné, dimension 200.")
+    print(
+        "W1 vérifié : Word2Vec complet, non pruné, "
+        f"dimension {EXPECTED_INPUT_DIM}."
+    )
 
     classifier_checkpoint = torch.load(
         artifacts / "classifier_W1_H2_M1.pt",
@@ -312,9 +344,18 @@ def main() -> None:
         weights_only=True,
     )
     if tuple(classifier_checkpoint["hidden_dims"]) != EXPECTED_HIDDEN_DIMS:
-        raise ValueError("Le checkpoint W1/H2/M1 n'a pas l'architecture 200→128→64→1.")
+        expected_architecture = "→".join(
+            map(str, (EXPECTED_INPUT_DIM, *EXPECTED_HIDDEN_DIMS, 1))
+        )
+        raise ValueError(
+            "Le checkpoint W1/H2/M1 n'a pas l'architecture "
+            f"{expected_architecture}."
+        )
     if classifier_checkpoint["input_dim"] != EXPECTED_INPUT_DIM:
-        raise ValueError("Le checkpoint W1/H2/M1 n'accepte pas des entrées de dimension 200.")
+        raise ValueError(
+            "Le checkpoint W1/H2/M1 n'accepte pas des entrées de dimension "
+            f"{EXPECTED_INPUT_DIM}."
+        )
 
     target_sparsity = args.target_sparsity
     if target_sparsity is None:

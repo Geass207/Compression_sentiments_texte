@@ -15,15 +15,22 @@ from src.word2vec import (
     text_vectors,
     train_cbow,
 )
+from src.experiment_config import (
+    CBOW_WINDOW_SIZE,
+    EMBEDDING_DIM,
+    NEGATIVE_SAMPLES,
+    SEED,
+    WORD2VEC_BATCH_SIZE,
+    WORD2VEC_EPOCHS,
+    WORD2VEC_LEARNING_RATE,
+)
 
 
-FULL_DIMENSION = 200
-WINDOW_SIZE = 2
-NEGATIVE_SAMPLES = 5
-BATCH_SIZE = 512
-TRAINING_EPOCHS = 5
-LEARNING_RATE = 1e-3
-SEED = 42
+FULL_DIMENSION = EMBEDDING_DIM
+WINDOW_SIZE = CBOW_WINDOW_SIZE
+BATCH_SIZE = WORD2VEC_BATCH_SIZE
+TRAINING_EPOCHS = WORD2VEC_EPOCHS
+LEARNING_RATE = WORD2VEC_LEARNING_RATE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(SEED)
@@ -66,7 +73,7 @@ pd.DataFrame(
     [
         {
             "word2vec": "W1",
-            "description": "complet_d200",
+            "description": f"complet_d{FULL_DIMENSION}",
             "embedding_dim": w1.embedding_dim,
             "training_parameters": training_parameter_count,
             "inference_parameters": inference_parameter_count,
@@ -78,7 +85,7 @@ pd.DataFrame(
 torch.save(
     {
         "variant": "W1",
-        "description": "complet_d200",
+        "description": f"complet_d{FULL_DIMENSION}",
         "model_state": w1.state_dict(),
         "vocab_size": vocab_size,
         "embedding_dim": w1.embedding_dim,

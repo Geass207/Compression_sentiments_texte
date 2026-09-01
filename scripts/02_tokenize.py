@@ -6,6 +6,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.tokenizer import train_bpe, encode_dataframe
+from src.experiment_config import MIN_TOKEN_FREQUENCY, VOCAB_SIZE
 
 
 train = pd.read_pickle("artifacts/train_clean.pkl")
@@ -13,7 +14,11 @@ validation = pd.read_pickle("artifacts/validation_clean.pkl")
 test = pd.read_pickle("artifacts/test_clean.pkl")
 
 # entraînement uniquement sur train
-bpe = train_bpe(train["text"])
+bpe = train_bpe(
+    train["text"],
+    vocab_size=VOCAB_SIZE,
+    min_frequency=MIN_TOKEN_FREQUENCY,
+)
 
 # sauvegarde du tokenizer
 bpe.save("artifacts/tokenizer.json")

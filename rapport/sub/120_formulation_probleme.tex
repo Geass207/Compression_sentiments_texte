@@ -1,0 +1,315 @@
+% -*- coding: utf-8 -*-
+% !TEX root = ../main.tex
+
+\subsection{Notations et conventions}
+\label{ssec:probleme_notations}
+
+Les notations principales employées dans cette partie sont rassemblées dans
+le tableau~\ref{tab:notations_probleme}. L'opérateur
+$\operatorname{nnz}$, abréviation de l'anglais \emph{number of non-zero
+entries}, désigne le nombre de coefficients non nuls d'un vecteur ou d'une
+matrice. Pour une matrice $A\in\mathbb{R}^{m\times n}$,
+\begin{equation}
+    \operatorname{nnz}(A)
+    =\left|\left\{(i,j)\,\middle|\,A_{ij}\neq0\right\}\right|.
+    \label{eq:def_nnz}
+\end{equation}
+Ainsi, une matrice dense de taille $1\,024\times100$ contient $102\,400$ poids
+et vérifie $\operatorname{nnz}(A)=102\,400$ si aucun poids n'est nul. Après
+un pruning à $50\,\%$, elle vérifie idéalement
+$\operatorname{nnz}(A)=51\,200$. Dans ce rapport, un \emph{poids actif}
+désigne donc un poids non nul.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        Notation & Définition \\ \hline
+        $t$, $y$ & Texte observé et étiquette réelle, avec $y\in\{0,1\}$. \\ \hline
+        $E$ & Bloc commun de tokenisation et de représentation Word2Vec. \\ \hline
+        $\boldsymbol{x}=E(t)$ & Vecteur représentant le texte et fourni à la tête de classification. \\ \hline
+        $L$, $\ell$ & Nombre de couches affines de la tête et indice d'une couche, $\ell\in\{1,\ldots,L\}$. \\ \hline
+        $d_{\ell}$ & Nombre de sorties de la couche $\ell$ ; $d_0$ est la dimension de $\boldsymbol{x}$. \\ \hline
+        $W^{(\ell)}$, $\boldsymbol{b}^{(\ell)}$ & Matrice de poids et vecteur de biais de la couche $\ell$. \\ \hline
+        $\boldsymbol{z}^{(\ell)}$, $\boldsymbol{a}^{(\ell)}$ & Préactivation et activation de la couche $\ell$. \\ \hline
+        $\phi_{\ell}$ & Fonction d'activation de la couche $\ell$. \\ \hline
+        $\boldsymbol{\theta}$ & Ensemble des paramètres entraînables de la tête de classification. \\ \hline
+        $M^{(\ell)}$ & Masque binaire de pruning de même dimension que $W^{(\ell)}$ ; 1 conserve un poids et 0 l'annule. \\ \hline
+        $\widetilde{W}^{(\ell)}$ & Matrice de poids après application du masque. \\ \hline
+        $\odot$ & Produit terme à terme, aussi appelé produit de Hadamard. \\ \hline
+        $\operatorname{nnz}(A)$ & Nombre de coefficients non nuls de l'objet $A$. \\ \hline
+        $P_H$, $C_H$, $s_H$ & Nombre de paramètres, coût de calcul et sparsité de la tête $H$. \\ \hline
+        $\mathrm{dense}$, $\mathrm{eff}$, $\mathrm{ref}$ & Valeur du modèle dense, valeur effective après pruning et valeur du modèle de référence M1. \\ \hline
+        $B$ & Nombre d'observations dans un batch. \\ \hline
+        $Q$, $\mathcal{L}$, $\alpha$ & Métrique de qualité à maximiser, loss à minimiser et coefficient de pénalisation de la complexité. \\ \hline
+    \end{tabularx}
+    \caption{Notations principales utilisées dans la formulation du problème.}
+    \label{tab:notations_probleme}
+\end{table}
+
+\subsection{Tâche et pipeline étudié}
+\label{ssec:probleme_pipeline}
+
+Soit un texte $t$ et une étiquette binaire $y\in\{0,1\}$. Un bloc commun
+$E$, composé de la tokenisation et de Word2Vec, transforme le texte en un
+vecteur
+\begin{equation}
+    \boldsymbol{x}=E(t)\in\mathbb{R}^{d_0}.
+\end{equation}
+Dans la configuration principale, le Word2Vec complet W1 est conservé et
+$d_0=100$. Une tête de classification $H_{\boldsymbol{\theta}}$ produit un
+logit, puis une probabilité
+\begin{equation}
+    \widehat{p}(y=1\mid t)
+    =\sigma\!\left(H_{\boldsymbol{\theta}}(\boldsymbol{x})\right).
+\end{equation}
+
+La tête contient $L$ couches affines. Pour
+$\ell\in\{1,\ldots,L\}$,
+\begin{align}
+    \boldsymbol{z}^{(\ell)}
+        &=W^{(\ell)}\boldsymbol{a}^{(\ell-1)}
+          +\boldsymbol{b}^{(\ell)},\\
+    \boldsymbol{a}^{(\ell)}
+        &=\phi_{\ell}\!\left(\boldsymbol{z}^{(\ell)}\right),
+\end{align}
+avec $\boldsymbol{a}^{(0)}=\boldsymbol{x}$,
+$W^{(\ell)}\in\mathbb{R}^{d_{\ell}\times d_{\ell-1}}$ et
+$\boldsymbol{b}^{(\ell)}\in\mathbb{R}^{d_{\ell}}$. Les couches cachées
+utilisent ReLU et la dernière couche produit un unique logit, donc $d_L=1$.
+
+Le modèle complet non pruné M1 sert de référence. Une méthode de scoring
+produit un masque binaire $M^{(\ell)}$ de même forme que chaque matrice de
+poids. Le modèle pruné utilise
+\begin{equation}
+    \widetilde{W}^{(\ell)}
+    =M^{(\ell)}\odot W^{(\ell)}.
+\end{equation}
+Les biais ne sont pas prunés dans le protocole actuel.
+
+\subsection{Modèles comparés}
+\label{ssec:probleme_modeles}
+
+La nomenclature commune sépare l'effet du pruning de celui du
+réentraînement :
+\begin{itemize}
+    \item \textbf{M1} : tête complète entraînée, utilisée comme référence ;
+    \item \textbf{M2} : copie de M1 immédiatement après application du masque ;
+    \item \textbf{M3} : M2 réentraîné sans permettre aux poids annulés de
+    redevenir non nuls ;
+    \item \textbf{M4} : architecture dense plus petite, entraînée directement,
+    utilisée comme référence de taille comparable.
+\end{itemize}
+
+Pour H2, M1 suit l'architecture
+$100\rightarrow1\,024\rightarrow128\rightarrow1$ et M4 l'architecture
+$100\rightarrow512\rightarrow128\rightarrow1$.
+
+\begin{table}[!h]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|r|r|r|}
+        \hline
+        Modèle & Architecture & Poids & Biais & Paramètres \tabularnewline
+        \hline
+        H2/M1 & $100\rightarrow1\,024\rightarrow128\rightarrow1$
+              & $233\,600$ & $1\,153$ & $234\,753$ \tabularnewline
+        \hline
+        H2/M4 & $100\rightarrow512\rightarrow128\rightarrow1$
+              & $116\,864$ & $641$ & $117\,505$ \tabularnewline
+        \hline
+    \end{tabularx}
+    \caption{Complexité paramétrique des deux architectures denses H2.}
+    \label{tab:architectures_h2}
+\end{table}
+
+\subsection{Complexité mémoire de la tête}
+\label{ssec:probleme_memoire}
+
+Le nombre de paramètres d'une tête dense vaut
+\begin{equation}
+    P_H^{\mathrm{dense}}
+    =\sum_{\ell=1}^{L}
+      \left(d_{\ell}d_{\ell-1}+d_{\ell}\right).
+    \label{eq:parametres_denses}
+\end{equation}
+La première partie compte les poids et la seconde les biais. Pour un modèle
+pruné $M$, le nombre de paramètres effectifs est défini par
+\begin{equation}
+    P_H^{\mathrm{eff}}(M)
+    =\sum_{\ell=1}^{L}
+      \left(\operatorname{nnz}\!\left(\widetilde{W}^{(\ell)}\right)
+      +d_{\ell}\right),
+    \label{eq:parametres_effectifs}
+\end{equation}
+où les biais, qui ne sont pas prunés dans le protocole actuel, sont ajoutés
+aux poids actifs comptés par $\operatorname{nnz}$. La \gls{sparsity} des poids
+est donc
+\begin{equation}
+    s_H(M)=1-
+    \frac{\sum_{\ell}\operatorname{nnz}(\widetilde{W}^{(\ell)})}
+         {\sum_{\ell}d_{\ell}d_{\ell-1}}.
+\end{equation}
+
+Dans ce rapport, $P_H^{\mathrm{eff}}$ est la mesure principale du nombre de
+paramètres utiles. On parlera de \emph{complexité paramétrique en mémoire}. Si
+chaque paramètre est stocké sur $b$ octets dans une représentation compacte,
+la mémoire idéale est approximativement $bP_H^{\mathrm{eff}}$.
+
+Cette définition doit être distinguée de la mémoire physique du prototype.
+Un tenseur dense conserve ses emplacements même lorsque certains coefficients
+valent zéro. Les checkpoints actuels stockent des matrices denses et un masque ;
+leur taille réelle ne diminue donc pas nécessairement. Un gain physique exige
+une représentation creuse ou la reconstruction d'une architecture compacte,
+et doit être vérifié par une mesure en octets.
+
+\subsection{Complexité de calcul à l'inférence}
+\label{ssec:probleme_calcul}
+
+Pour une observation, une couche dense
+$d_{\ell-1}\rightarrow d_{\ell}$ effectue
+$d_{\ell}d_{\ell-1}$ opérations de type \gls{mac}. Le coût dominant de la tête est
+\begin{equation}
+    C_H^{\mathrm{dense}}
+    =\sum_{\ell=1}^{L}d_{\ell}d_{\ell-1}
+    \quad\text{MAC par observation}.
+    \label{eq:mac_denses}
+\end{equation}
+Avec la convention où une multiplication et une addition comptent pour deux
+opérations flottantes, cela correspond approximativement à
+$2C_H^{\mathrm{dense}}$ \gls{flop}, auxquels s'ajoutent les biais et les fonctions
+d'activation. Pour un batch de taille $B$, le coût est multiplié par $B$.
+
+Si le moteur d'exécution sait ignorer les zéros, le coût effectif idéal devient
+\begin{equation}
+    C_H^{\mathrm{eff}}(M)
+    =\sum_{\ell=1}^{L}
+      \operatorname{nnz}\!\left(\widetilde{W}^{(\ell)}\right)
+    \quad\text{MAC par observation}.
+    \label{eq:mac_effectifs}
+\end{equation}
+Cette quantité mesure le potentiel de réduction du calcul. Dans
+l'implémentation dense actuelle, les matrices gardent leurs dimensions
+initiales : le nombre d'opérations réellement exécutées reste alors proche de
+$C_H^{\mathrm{dense}}$, même si $C_H^{\mathrm{eff}}$ diminue. Trois grandeurs
+seront par conséquent rapportées séparément : MAC effectifs théoriques, MAC
+denses exécutés et latence mesurée sur un matériel identifié.
+
+\subsection{Bloc commun et deux niveaux d'analyse}
+\label{ssec:probleme_bloc_commun}
+
+Notons $P_C$ et $C_C$ les complexités du bloc commun tokenisation--Word2Vec.
+La complexité du pipeline complet est
+\begin{align}
+    P_{\mathrm{total}}(M)&=P_C+P_H^{\mathrm{eff}}(M),\\
+    C_{\mathrm{total}}(M)&=C_C+C_H^{\mathrm{eff}}(M).
+\end{align}
+Comme $P_C$ et $C_C$ sont identiques pour toutes les méthodes comparées, ils
+n'influencent pas l'ordre relatif des têtes, mais ils peuvent fortement diluer
+le gain exprimé en pourcentage du système complet. Les résultats présenteront
+donc deux vues complémentaires :
+\begin{itemize}
+    \item une vue \emph{tête seule}, qui mesure directement l'effet du pruning ;
+    \item une vue \emph{bout en bout}, qui représente le gain réellement
+    observable dans le pipeline complet.
+\end{itemize}
+
+\subsection{Coût hors ligne des méthodes de scoring}
+\label{ssec:probleme_cout_scoring}
+
+Le coût du scoring est payé pendant la compression et non à chaque inférence.
+Il ne doit donc pas être confondu avec $C_H^{\mathrm{eff}}$, mais il est utile
+pour comparer la praticabilité des méthodes.
+
+Soit $P$ le nombre de paramètres de la tête, $R$ le nombre de vecteurs utilisés
+par l'estimateur de Hutchinson et $C_{\mathrm{fb}}$ le coût d'une passe avant et
+arrière sur le batch de scoring. L'estimation diagonale utilisée par OBD a un
+coût de l'ordre de
+\begin{equation}
+    C_{\mathrm{score}}^{\mathrm{OBD}}
+    =\Theta\!\left(RC_{\mathrm{fb}}\right),
+\end{equation}
+La mémoire mobilisée est du même ordre que celle des paramètres, à laquelle
+s'ajoutent les gradients et les activations conservées pour la
+rétropropagation.
+
+Dans sa formulation classique, OBS manipule une approximation dense de la
+Hessienne inverse. Son stockage est en $\Theta(P^2)$ et une inversion naïve est
+en $\Theta(P^3)$. Des approximations sont donc nécessaires lorsque $P$ devient
+grand. OBS est présenté comme élément de l'état de l'art, mais n'est pas encore
+une méthode expérimentale du pipeline actuel.
+
+Pour MINT, notons $G_{\ell}$ le nombre de groupes de la couche $\ell$, $m$ la
+taille de chacune des partitions utilisées par l'estimateur et
+$d_{\ell-1}$ la dimension de l'activation amont. Le nombre de scores est
+\begin{equation}
+    S_{\mathrm{MINT}}=\sum_{\ell=1}^{L}d_{\ell}G_{\ell}.
+\end{equation}
+L'implémentation dense construit les distances puis l'arbre couvrant minimal.
+Son coût admet l'ordre de grandeur
+\begin{equation}
+    C_{\mathrm{score}}^{\mathrm{MINT}}
+    =\Theta\!\left(
+      \sum_{\ell=1}^{L}
+      d_{\ell}G_{\ell}m^2d_{\ell-1}
+    \right).
+    \label{eq:complexite_mint}
+\end{equation}
+La matrice de distances d'un score occupe $\Theta(m^2)$ éléments, auxquels
+s'ajoutent les activations et les scores conservés. Pour H2 et
+$(G_1,G_2,G_3)=(10,16,8)$, le pipeline calcule
+$1\,024\times10+128\times16+1\times8=12\,296$ scores.
+
+\subsection{Objectif multi-critère}
+\label{ssec:probleme_objectif}
+
+Soit $M_{\mathrm{ref}}=$ M1 le modèle complet non pruné. On pose
+\begin{equation}
+    P_{\mathrm{ref}}=P_H^{\mathrm{eff}}(M_{\mathrm{ref}}),
+    \qquad
+    C_{\mathrm{ref}}=C_H^{\mathrm{eff}}(M_{\mathrm{ref}}).
+\end{equation}
+Le terme \emph{maximum} désigne donc toujours cette référence explicite,
+et non le maximum recalculé sur les modèles présents dans un fichier CSV.
+
+Pour une métrique de qualité $Q(M)\in[0,1]$, par exemple l'accuracy ou le F1,
+les scores ajustés proposés sont
+\begin{align}
+    Q_{\alpha}^{\text{mémoire}}(M)
+        &=Q(M)-\alpha
+          \frac{P_H^{\mathrm{eff}}(M)}{P_{\mathrm{ref}}},
+          \label{eq:qualite_ajustee_memoire}\\
+    Q_{\alpha}^{\text{calcul}}(M)
+        &=Q(M)-\alpha
+          \frac{C_H^{\mathrm{eff}}(M)}{C_{\mathrm{ref}}}.
+          \label{eq:qualite_ajustee_calcul}
+\end{align}
+Le coefficient $\alpha\geq0$ représente l'importance accordée à la
+compression. Si une loss est utilisée à la place d'une qualité à maximiser, le
+signe devient positif :
+\begin{equation}
+    \mathcal{L}_{\alpha}^{\text{ajustée}}(M)
+    =\mathcal{L}(M)+\alpha r(M),
+\end{equation}
+où $r$ est le ratio de mémoire ou de calcul.
+
+Un unique choix de $\alpha$ serait arbitraire. Les courbes seront donc tracées
+sur un intervalle de valeurs de $\alpha$, en plus des diagrammes de Pareto sans
+pondération. L'accuracy ajustée répond directement à la formulation proposée ;
+le F1 ajusté sera également présenté car il est plus informatif lorsque les
+classes ou les types d'erreurs sont déséquilibrés.
+
+\subsection{Questions expérimentales}
+\label{ssec:probleme_questions}
+
+L'étude cherchera finalement à répondre aux questions suivantes :
+\begin{enumerate}
+    \item quelle performance est perdue immédiatement après le pruning ?
+    \item quelle part de cette performance est récupérée par le
+    réentraînement contraint ?
+    \item à performance comparable, quelle méthode produit le moins de
+    paramètres effectifs et le moins de MAC effectifs ?
+    \item les gains théoriques se traduisent-ils en gains de mémoire physique
+    et de latence sur le matériel utilisé ?
+    \item quel est le coût hors ligne nécessaire au calcul des scores OBD et
+    MINT ?
+\end{enumerate}

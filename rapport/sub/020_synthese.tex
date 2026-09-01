@@ -1,13 +1,33 @@
 % -*- coding: utf-8 -*-
 % !TEX root = ../main.tex
 
-% TODO Insérer la synthèse du stage
+Ce stage étudie la compression d'une tête de classification de sentiments afin
+de réduire le coût de l'inférence sans modifier le modèle d'embedding
+préentraîné. Un pipeline reproductible associant un tokenizer BPE, un backbone
+CBOW figé et deux têtes neuronales denses a été mis en place. Deux méthodes de
+pruning ont été comparées : Optimal Brain Damage (OBD), fondée sur une
+approximation de second ordre de la loss, et MINT, fondée sur l'information
+mutuelle conditionnelle. Une architecture dense plus petite, M4, a également
+été entraînée comme solution de référence directement déployable.
 
-%%%
-%%%
+Dans les cinq runs observés, l'annulation d'environ $50\,\%$ des poids n'abaisse
+pas le F1 moyen après réentraînement. OBD-M3 atteint
+$0{,}7512\pm0{,}0048$ sur H1,
+contre $0{,}7456\pm0{,}0048$ pour M1 ; MINT-M3 atteint
+$0{,}7430\pm0{,}0101$ sur H2, contre $0{,}7321\pm0{,}0082$. Les écarts moyens
+favorisent donc les modèles prunés.
+MINT est en outre très instable immédiatement après le masque et son scoring
+est environ 163 fois plus lent que celui d'OBD. Surtout, les masques ne réduisent
+ni la taille physique ni la latence des modèles PyTorch, dont les tenseurs
+restent denses. À l'inverse, M4 conserve un F1 moyen de
+$0{,}7345\pm0{,}0100$ sur H2 tout en réduisant la taille de l'artefact de
+$34{,}95\,\%$, la latence de la tête de $42{,}27\,\%$ et celle du pipeline
+complet de $12{,}83\,\%$. M4 constitue donc la compression immédiatement
+exploitable ; OBD et MINT nécessitent un format sparse ou un pruning structuré
+pour transformer leur sparsité théorique en gain matériel réel.
 
-\paragraph*{Mots-clés}\label{par:mots-cles}
+\paragraph*{Mots-clés}
 
-% TODO Mots-clés de votre rapport de stage
-
-Template, rapport
+Classification de sentiments, compression de réseaux neuronaux, pruning,
+Optimal Brain Damage, information mutuelle, complexité mémoire, complexité de
+calcul.

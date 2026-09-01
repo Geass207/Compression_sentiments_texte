@@ -1,4 +1,5 @@
 # Dossiers et Fichiers générés à la compilation
+/build/
 *_minted*
 *.acn
 *.acr

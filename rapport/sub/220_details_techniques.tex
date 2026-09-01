@@ -1,13 +1,33 @@
 % -*- coding: utf-8 -*-
 % !TEX root = ../main.tex
 
-% TODO Expliquer la solution implémentée plus en détails (extraits de code, interfaces des applications, l’interface graphique des outils utilisés...)
+\subsection{Exécution des répétitions}
 
-\begin{terminalcode}[%
-    minted options={breaklines, autogobble, numbersep=8mm, fontsize=\normalsize},
-]
-$ echo "Hello world!"
-Hello world!
-$ sleep 1
-$
-\end{terminalcode}
+Le protocole multi-graines est lancé depuis la racine du projet avec la
+commande suivante :
+\begin{verbatim}
+.venv/bin/python scripts/08_repeat_experiments.py
+\end{verbatim}
+Par défaut, le script utilise les graines 42 à 46, les têtes H1 et H2, OBD,
+MINT sur H2 et les témoins denses. Il recharge les partitions, les vecteurs
+agrégés et W1 depuis \texttt{artifacts/} sans modifier ces fichiers. Les
+résultats sont isolés dans \texttt{artifacts/repeated\_runs/}. Une graine
+terminée possède son propre sous-répertoire et est ignorée lors d'une reprise ;
+l'option \texttt{--rerun-completed} force son recalcul.
+
+Les principaux fichiers produits sont :
+\begin{itemize}
+    \item \path{metrics_by_seed.csv}, qui conserve les 75 évaluations
+    individuelles ainsi que les critères ajustés avec $\alpha=0{,}4$ ;
+    \item \path{metrics_summary.csv}, qui fournit la synthèse au format large ;
+    \item \path{metrics_summary_long.csv}, qui fournit pour chaque métrique
+    l'effectif, la moyenne, l'écart-type, la variance et l'intervalle à
+    $95\,\%$ ;
+    \item \path{paired_differences_summary.csv}, qui contient les mêmes
+    statistiques pour les différences graine par graine entre modèles ;
+    \item \path{run_config.json}. Ce fichier enregistre la configuration
+    complète et l'activation des contrôles.
+\end{itemize}
+
+Chaque sous-répertoire de graine conserve en outre les métriques brutes, la
+trajectoire de pruning OBD et les temps de scoring MINT par couche.

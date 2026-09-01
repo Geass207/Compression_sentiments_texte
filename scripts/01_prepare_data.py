@@ -4,10 +4,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.data import load_data, keep_binary_sentiment
+from src.experiment_config import DATASET_NAME
 
 
 #chargement du jeu de données 
-train, validation, test = load_data("Sp1786/multiclass-sentiment-analysis-dataset")
+train, validation, test = load_data(DATASET_NAME)
 
 #suppression de la classe neutre
 train = keep_binary_sentiment(train)

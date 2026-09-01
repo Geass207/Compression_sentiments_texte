@@ -1,0 +1,456 @@
+% -*- coding: utf-8 -*-
+% !TEX root = ../main.tex
+
+\subsection{Pipeline expérimental commun}
+\label{ssec:methode_pipeline}
+
+Toutes les méthodes partagent les mêmes partitions de données, le même
+tokenizer BPE, le même modèle Word2Vec W1 et la même initialisation de la tête
+dense M1. Cette base commune est essentielle : si le backbone ou la tête
+initiale changeait entre deux expériences, la différence de performance ne
+pourrait plus être attribuée uniquement au critère de pruning.
+
+Le modèle W1 est appris une fois avec l'objectif CBOW, puis figé. Pour chaque
+texte, les embeddings d'entrée des unités BPE sont moyennés afin d'obtenir
+$\boldsymbol{x}\in\mathbb{R}^{100}$. La tête est entraînée avec la
+binary cross-entropy appliquée au logit $z_r$ :
+\begin{equation}
+    \mathcal{L}(\boldsymbol{\theta})
+    =-\frac{1}{B}\sum_{r=1}^{B}
+    \left[
+        y_r\log\sigma(z_r)
+        +(1-y_r)\log\bigl(1-\sigma(z_r)\bigr)
+    \right].
+    \label{eq:loss_bce_methodologie}
+\end{equation}
+Les variantes prunées utilisent exactement cette même fonction de coût.
+
+Le protocole commun suit la séquence suivante :
+\begin{enumerate}
+    \item entraîner la tête dense M1 et conserver le meilleur état selon la
+    loss de validation ;
+    \item calculer les scores d'importance sur M1 ou sur le dernier modèle
+    réentraîné ;
+    \item construire un masque et mettre à zéro les poids sélectionnés pour
+    obtenir M2 ;
+    \item réentraîner les poids actifs sous contrainte du même masque afin
+    d'obtenir M3 ;
+    \item comparer M2 et M3 à M1 ainsi qu'à la petite architecture dense M4,
+    entraînée directement avec un nombre de poids voisin de la cible.
+\end{enumerate}
+
+La configuration commune actuellement inscrite dans les scripts est résumée
+dans le tableau~\ref{tab:hyperparametres_communs}.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        Élément & Configuration actuelle \\ \hline
+        Données & Jeu \texttt{Sp1786/multiclass-sentiment-analysis-dataset}, classe neutre retirée : $19\,583$ textes d'entraînement, $3\,277$ de validation et $3\,276$ de test. \\ \hline
+        Tokenizer & BPE de vocabulaire maximal $|\mathcal{V}|=1\,000$, fréquence minimale 2. \\ \hline
+        Word2Vec W1 & CBOW, dimension 100, fenêtre de deux unités de chaque côté, 5 négatifs par cible. \\ \hline
+        Entraînement W1 & 5 époques, batch 512, Adam, taux d'apprentissage $10^{-3}$. \\ \hline
+        Tête H1/M1 & $100\rightarrow1\,024\rightarrow1$. \\ \hline
+        Tête H2/M1 & $100\rightarrow1\,024\rightarrow128\rightarrow1$. \\ \hline
+        Entraînement des têtes & Au plus 30 époques, batch 256, Adam, taux $10^{-3}$, patience 4 sur la loss de validation. \\ \hline
+        Fonction de coût & Binary cross-entropy calculée directement à partir du logit. \\ \hline
+        Graine actuelle & 42 pour l'initialisation, les tirages et l'entraînement. \\ \hline
+    \end{tabularx}
+    \caption{Hyperparamètres communs au pipeline actuel.}
+    \label{tab:hyperparametres_communs}
+\end{table}
+
+\subsection{Dérivation du score Optimal Brain Damage}
+\label{ssec:methode_obd}
+
+\subsubsection{Approximation locale au second ordre}
+
+OBD cherche à estimer l'augmentation de la fonction de coût provoquée par la
+suppression d'un paramètre \cite{lecun1989obd}. Soit
+$\boldsymbol{\theta}$ le vecteur des paramètres de la tête entraînée et
+$\boldsymbol{\delta}$ une perturbation de ces paramètres. Au voisinage de
+$\boldsymbol{\theta}$, un développement de Taylor au second ordre donne
+\begin{equation}
+    \Delta\mathcal{L}
+    =\mathcal{L}(\boldsymbol{\theta}+\boldsymbol{\delta})
+     -\mathcal{L}(\boldsymbol{\theta})
+    \simeq
+    \boldsymbol{g}^{\mathsf{T}}\boldsymbol{\delta}
+    +\frac{1}{2}
+     \boldsymbol{\delta}^{\mathsf{T}}
+     H\boldsymbol{\delta},
+    \label{eq:taylor_obd}
+\end{equation}
+où $\boldsymbol{g}=\nabla_{\boldsymbol{\theta}}\mathcal{L}$ et
+$H=\nabla_{\boldsymbol{\theta}}^2\mathcal{L}$ désignent respectivement le
+gradient et la Hessienne.
+
+Le passage de l'\autoref{eq:taylor_obd} au score OBD repose sur trois
+hypothèses. Premièrement, le réseau est supposé proche d'un minimum, de sorte
+que $\boldsymbol{g}\simeq\boldsymbol{0}$. Deuxièmement, la loss est supposée
+localement bien décrite par son approximation quadratique, ce qui permet de
+négliger les termes d'ordre supérieur. Troisièmement, les termes hors diagonale
+de $H$ sont ignorés. Cette dernière approximation rend le calcul praticable,
+mais elle néglige les compensations possibles entre paramètres, contrairement à
+Optimal Brain Surgeon \cite{hassibi1993obs}.
+
+Supprimer le poids $w_k$ revient à imposer
+$\delta_k=-w_k$ et $\delta_j=0$ pour $j\neq k$. Sous les hypothèses
+précédentes, l'augmentation locale de la loss devient
+\begin{equation}
+    \Delta\mathcal{L}_k
+    \simeq \frac{1}{2}H_{kk}w_k^2.
+\end{equation}
+La saillance utilisée dans l'implémentation est donc
+\begin{equation}
+    S_k^{\mathrm{OBD}}
+    =\frac{1}{2}\left|\widehat{H}_{kk}\right|w_k^2.
+    \label{eq:score_obd}
+\end{equation}
+Dans la formulation idéale, la courbure diagonale est positive au voisinage
+d'un minimum. La valeur absolue de $\widehat{H}_{kk}$ est une précaution de
+l'implémentation face au bruit de l'estimation et à la non-convexité du réseau.
+Un score faible signifie que l'annulation du poids devrait peu modifier la
+loss, tandis qu'un score élevé signale un poids localement sensible.
+
+\subsubsection{Estimation de la diagonale de la Hessienne}
+
+Former explicitement la Hessienne complète demanderait une mémoire quadratique
+en nombre de paramètres. Le code estime uniquement sa diagonale à partir de
+produits Hessienne--vecteur. Pour un vecteur aléatoire de Rademacher
+$\boldsymbol{v}\in\{-1,+1\}^{P}$ dont les coordonnées sont indépendantes,
+\begin{equation}
+    \mathbb{E}\!\left[
+        \boldsymbol{v}\odot(H\boldsymbol{v})
+    \right]
+    =\operatorname{diag}(H).
+\end{equation}
+Avec $R$ tirages, l'estimateur employé est
+\begin{equation}
+    \widehat{\operatorname{diag}(H)}
+    =\frac{1}{R}\sum_{r=1}^{R}
+      \boldsymbol{v}^{(r)}\odot
+      \left(H\boldsymbol{v}^{(r)}\right).
+    \label{eq:hutchinson_diagonale}
+\end{equation}
+Chaque produit $H\boldsymbol{v}^{(r)}$ est obtenu par autodifférentiation sans
+matérialiser $H$. Dans la configuration actuelle, la BCE est calculée sur 256
+exemples d'entraînement et $R=10$ vecteurs sont utilisés. La diagonale est
+estimée pour tous les paramètres entraînables, mais seuls les tenseurs dont le
+nom se termine par \texttt{weight} participent au classement : les biais ne
+sont pas prunés.
+
+\subsubsection{Sélection globale et réentraînement itératif}
+
+Les scores de toutes les matrices de poids sont aplatis et comparés dans un
+classement global. Les poids déjà masqués reçoivent un score infini afin de ne
+pas être sélectionnés une seconde fois. À chaque itération, le protocole retire
+au plus $10\,\%$ du nombre initial de poids, puis réentraîne les poids actifs
+pendant trois époques. Les gradients des poids masqués sont annulés et le masque
+est réappliqué après chaque mise à jour, ce qui empêche les connexions supprimées
+de réapparaître. Les scores et la diagonale de la Hessienne sont ensuite
+recalculés sur le modèle réentraîné avant l'itération suivante.
+
+La sparsité cible est définie par le rapport entre le nombre de poids de M1 et
+celui de la référence dense M4 :
+\begin{equation}
+    \tau_H
+    =1-\frac{P_{H,\mathrm{M4}}^{\mathrm{poids}}}
+             {P_{H,\mathrm{M1}}^{\mathrm{poids}}}.
+    \label{eq:sparsity_cible_m4}
+\end{equation}
+Elle vaut $50\,\%$ pour H1 et environ $49{,}91\,\%$ pour H2. La dernière
+itération retire seulement le nombre de poids encore nécessaire pour atteindre
+exactement cette cible.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        Hyperparamètre OBD & Valeur actuelle \\ \hline
+        Données du score & 256 premiers exemples de l'ensemble d'entraînement. \\ \hline
+        Vecteurs de Rademacher & $R=10$ par estimation de la diagonale. \\ \hline
+        Granularité & Poids individuels, classement global entre les couches. \\ \hline
+        Pas d'élagage & $10\,\%$ du nombre initial de poids par itération, avec un dernier pas tronqué. \\ \hline
+        Sparsité cible & H1 : $50\,\%$ ; H2 : $49{,}973\,\%$. \\ \hline
+        Réentraînement intermédiaire & 3 époques, batch 256, Adam, taux $10^{-3}$, sans arrêt anticipé. \\ \hline
+        Paramètres exclus & Biais et backbone Word2Vec. \\ \hline
+    \end{tabularx}
+    \caption{Configuration actuelle du pruning OBD.}
+    \label{tab:hyperparametres_obd}
+\end{table}
+
+\subsection{Construction du score MINT}
+\label{ssec:methode_mint}
+
+\subsubsection{Dépendance conditionnelle entre deux couches}
+
+MINT ne calcule son score ni à partir de la magnitude des poids, ni à partir de
+leur gradient ou de leur Hessienne. La méthode étudie les activations produites
+par deux couches successives sur un ensemble de calibration
+\cite{ganesh2020mint}. Pour $N_{\mathrm{cal}}$ observations, les activations de
+la couche $\ell$ sont rassemblées dans
+\begin{equation}
+    A^{(\ell)}\in\mathbb{R}^{N_{\mathrm{cal}}\times d_{\ell}},
+\end{equation}
+où une ligne correspond à un texte et une colonne à une unité du réseau. Les
+sorties cachées sont observées après ReLU ; pour la dernière couche, le logit
+est utilisé avant la sigmoïde.
+
+Les $d_{\ell}$ unités amont sont réparties en $K_{\ell}$ groupes disjoints
+$G_{\ell,1},\ldots,G_{\ell,K_{\ell}}$. Pour mesurer l'importance du groupe
+$G_{\ell,g}$ vis-à-vis de l'unité aval $i$, trois variables sont construites :
+\begin{align}
+    X &= A^{(\ell+1)}_{:,i},
+        & &\text{activation de l'unité aval},\\
+    Y &= A^{(\ell)}_{:,G_{\ell,g}},
+        & &\text{activations du groupe amont testé},\\
+    Z &= A^{(\ell)}_{:,-G_{\ell,g}},
+        & &\text{activations de toutes les autres unités amont}.
+    \label{eq:triplet_mint}
+\end{align}
+Le score recherché est l'information mutuelle géométrique conditionnelle
+\begin{equation}
+    \rho_{i,g}^{(\ell)}
+    =I_{\mathrm{G}}(X;Y\mid Z).
+    \label{eq:score_mint_abstrait}
+\end{equation}
+Le conditionnement est essentiel. Un groupe $Y$ peut être corrélé à la sortie
+$X$ tout en étant redondant si la même information est déjà contenue dans
+$Z$. Un faible $\rho_{i,g}^{(\ell)}$ signifie donc que le groupe apporte peu
+d'information supplémentaire à l'unité aval une fois les autres activations
+connues.
+
+Pour une observation, la concaténation $(X,Y,Z)$ appartient toujours à
+$\mathbb{R}^{d_{\ell}+1}$, car
+$1+|G_{\ell,g}|+(d_{\ell}-|G_{\ell,g}|)=d_{\ell}+1$. Par exemple, sur la
+transition $1\,024\rightarrow128$, un groupe de 64 unités donne un scalaire
+$X$, un vecteur $Y\in\mathbb{R}^{64}$ et un vecteur
+$Z\in\mathbb{R}^{960}$ ; chaque point géométrique appartient donc à
+$\mathbb{R}^{1\,025}$. Il faut plusieurs observations de ce triplet pour estimer
+la dépendance : les coordonnées sont des activations, tandis que les lignes
+représentent les textes de calibration.
+
+La GMI n'est pas l'information mutuelle de Shannon. Elle est reliée à une
+divergence de Henze--Penrose et permet une estimation géométrique sans estimer
+explicitement des densités en grande dimension \cite{yasaei2019gmi}. La
+construction compare deux distributions définies sur les mêmes triplets :
+\begin{align}
+    P(x,y,z)
+        &=f_{XYZ}(x,y,z),\\
+    Q(x,y,z)
+        &=f_Z(z)f_{X\mid Z}(x\mid z)f_{Y\mid Z}(y\mid z).
+    \label{eq:distributions_mint_pq}
+\end{align}
+$P$ est la distribution réelle des activations. $Q$ est la distribution qui
+serait obtenue si $X$ et $Y$ étaient rendus indépendants conditionnellement à
+$Z$. Ainsi, $X\perp\!\!\!\perp Y\mid Z$ implique $P=Q$.
+
+\subsubsection{Population artificielle par bootstrap conditionnel}
+
+Avant les calculs géométriques, chaque colonne d'activation est centrée et
+réduite. Cette standardisation empêche les unités de grande variance de dominer
+les distances euclidiennes. Pour chaque score, les observations sont ensuite
+réparties en trois ensembles disjoints de taille $m$ :
+\begin{equation}
+    I_P,\ I_S,\ I_D,
+    \qquad |I_P|=|I_S|=|I_D|=m.
+\end{equation}
+La population réelle contient les triplets
+\begin{equation}
+    \mathcal{P}
+    =\{(X_r,Y_r,Z_r):r\in I_P\}.
+\end{equation}
+
+Une permutation globale de $Y$ casserait simultanément les relations
+$X$--$Y$ et $Y$--$Z$ ; elle ne produirait donc pas la distribution $Q$. MINT
+s'appuie plutôt sur le bootstrap au plus proche voisin de Sen et ses coauteurs
+\cite{sen2017ci}. Pour chaque source $r\in I_S$, un donneur est recherché dans
+$I_D$ uniquement à partir de la proximité de $Z$ :
+\begin{equation}
+    d^*(r)
+    =\underset{s\in I_D}{\arg\min}\,
+      \lVert Z_r-Z_s\rVert_2.
+    \label{eq:donneur_mint}
+\end{equation}
+Le point synthétique conserve $(X_r,Z_r)$ mais emprunte $Y$ au donneur :
+\begin{equation}
+    \widetilde{U}_r=(X_r,Y_{d^*(r)},Z_r).
+\end{equation}
+La population
+$\mathcal{Q}=\{\widetilde{U}_r:r\in I_S\}$ approxime ainsi la distribution
+conditionnellement indépendante de l'\autoref{eq:distributions_mint_pq}.
+
+\subsubsection{Estimateur géométrique par arbre couvrant minimal}
+
+Les $m$ points réels et les $m$ points synthétiques sont fusionnés. Un arbre
+couvrant minimal euclidien est construit sur ces $2m$ points, puis la
+statistique de Friedman--Rafsky compte le nombre $R_m$ d'arêtes reliant une
+observation réelle à une observation synthétique
+\cite{friedman1979multivariate}. Pour deux populations de même taille,
+l'estimateur utilisé par MINT se simplifie en
+\begin{equation}
+    \widehat{I}_{\mathrm{G}}(X;Y\mid Z)
+    =1-\frac{R_m}{m}.
+\end{equation}
+L'implémentation borne cette quantité dans $[0,1]$ :
+\begin{equation}
+    \rho_{i,g}^{(\ell)}
+    =\operatorname{clip}_{[0,1]}
+      \left(1-\frac{R_m}{m}\right).
+    \label{eq:score_mint_estime}
+\end{equation}
+
+L'interprétation est la suivante. Si $P$ et $Q$ sont proches, leurs points se
+mélangent et le MST comporte de nombreuses arêtes croisées ; $R_m$ est grand et
+le score est faible. Le remplacement de $Y$ modifie alors peu la distribution,
+ce qui indique une contribution conditionnelle limitée. Si les deux
+populations sont au contraire séparées, $R_m$ est faible et le score est élevé :
+le groupe $Y$ contribue de manière importante à l'activation aval.
+
+\subsubsection{Passage des scores aux blocs de poids}
+
+Pour une transition $d_{\ell}\rightarrow d_{\ell+1}$, le calcul produit une
+matrice
+\begin{equation}
+    \rho^{(\ell)}
+    \in[0,1]^{d_{\ell+1}\times K_{\ell}}.
+\end{equation}
+Le score $(i,g)$ est associé au bloc de poids
+$W^{(\ell+1)}_{i,G_{\ell,g}}$. Si ce score est sélectionné, tous les poids qui
+relient le groupe $G_{\ell,g}$ à l'unité aval $i$ sont annulés. Avec des groupes
+de taille supérieure à un, il s'agit donc d'un pruning par blocs dans chaque
+ligne de la matrice, et non de la suppression d'un neurone complet.
+
+L'article MINT formule la décision à partir d'un seuil $\delta$. Pour contrôler
+la comparaison avec OBD, l'implémentation actuelle impose plutôt une sparsité
+de blocs $\tau$ dans chaque couche et sélectionne les scores les plus faibles.
+Une protection $\gamma$ limite la fraction maximale de blocs supprimés dans une
+même couche :
+\begin{equation}
+    B_{\ell}^{\mathrm{prune}}
+    =\min\!\left(
+        \left\lfloor d_{\ell+1}K_{\ell}\tau\right\rfloor,
+        \left\lfloor d_{\ell+1}K_{\ell}\gamma\right\rfloor
+      \right).
+    \label{eq:blocs_prunes_mint}
+\end{equation}
+Cette règle est une adaptation expérimentale : une même proportion de blocs
+ne correspond exactement à une même proportion de poids que si tous les groupes
+ont la même taille.
+
+\subsubsection{Configuration appliquée à H2}
+
+MINT est appliqué en une passe à H2. Une calibration équilibrée est tirée dans
+l'ensemble d'entraînement avec 96 exemples de chaque classe, soit
+$N_{\mathrm{cal}}=192$. Les labels servent uniquement à équilibrer ce tirage ;
+ils n'entrent ni dans les triplets $(X,Y,Z)$, ni dans le MST. Chaque score
+utilise trois partitions de $m=64$ observations, ce qui exploite exactement
+$3m=192$ exemples.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|r|r|r|r|X|}
+        \hline
+        Transition & $d_{\ell}$ & $d_{\ell+1}$ & $K_{\ell}$ & Taille & Scores \\ \hline
+        $100\rightarrow1\,024$ & 100 & $1\,024$ & 10 & 10 & $1\,024\times10=10\,240$ \\ \hline
+        $1\,024\rightarrow128$ & $1\,024$ & 128 & 16 & 64 & $128\times16=2\,048$ \\ \hline
+        $128\rightarrow1$ & 128 & 1 & 8 & 16 & $1\times8=8$ \\ \hline
+        Total & -- & -- & -- & -- & $12\,296$ estimations GMI \\ \hline
+    \end{tabularx}
+    \caption{Groupement des activations pour le scoring MINT de H2.}
+    \label{tab:groupes_mint_h2}
+\end{table}
+
+La sparsité nominale de blocs est
+$\tau=49{,}973\,\%$, valeur héritée de la comparaison H2/M1--H2/M4, et la
+protection vaut $\gamma=80\,\%$. À cause des parties entières dans
+l'\autoref{eq:blocs_prunes_mint}, les trois couches suppriment respectivement
+$5\,117$, $1\,023$ et 3 blocs. Comme leurs tailles valent 10, 64 et 16, cela
+représente $116\,690$ poids annulés sur $233\,600$, soit une sparsité
+effective de $49{,}953\,\%$.
+
+Le modèle immédiatement masqué constitue MINT-M2. Une copie est ensuite
+réentraînée au plus dix époques avec Adam, un batch de 256, un taux
+d'apprentissage de $10^{-3}$ et une patience de 4 ; le masque est maintenu après
+chaque mise à jour. Le modèle obtenu constitue MINT-M3.
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        Hyperparamètre MINT & Valeur actuelle \\ \hline
+        Modèle scoré & W1/H2/M1, architecture $100\rightarrow1\,024\rightarrow128\rightarrow1$. \\ \hline
+        Calibration & 96 exemples par classe, tirés dans l'entraînement ; 192 au total. \\ \hline
+        Standardisation & Colonne par colonne, avec $\varepsilon=10^{-8}$. \\ \hline
+        Taille des partitions & $m=64$ pour la population réelle, les sources et les donneurs. \\ \hline
+        Groupes par couche & $(K_0,K_1,K_2)=(10,16,8)$. \\ \hline
+        Règle de sélection & Sparsité de blocs par couche $\tau=49{,}973\,\%$. \\ \hline
+        Protection de couche & $\gamma=80\,\%$ au maximum. \\ \hline
+        Graine & 42 pour la calibration ; 42, 43 et 44 pour les trois couches. \\ \hline
+        Réentraînement final & Au plus 10 époques, batch 256, Adam, taux $10^{-3}$, patience 4. \\ \hline
+        Paramètres exclus & Biais et backbone Word2Vec. \\ \hline
+    \end{tabularx}
+    \caption{Configuration actuelle du pruning MINT.}
+    \label{tab:hyperparametres_mint}
+\end{table}
+
+\subsection{Protocole d'évaluation et précautions expérimentales}
+\label{ssec:methode_evaluation}
+
+La même fonction d'évaluation est utilisée pour toutes les méthodes. Elle
+calcule la binary cross-entropy, l'accuracy, la balanced accuracy, la précision,
+le rappel, le F1, le macro-F1 et la ROC-AUC sur les ensembles de validation et
+de test. Le jeu de test n'intervient ni dans le calcul des scores, ni dans le
+choix du masque, ni dans l'arrêt anticipé. Les métriques sont rapportées
+pour M1, juste après le pruning avec M2, après réentraînement avec M3 et pour la
+référence dense M4.
+
+Les mesures de complexité distinguent le nombre de poids actifs, la taille
+physique des checkpoints, les MAC théoriquement évitables et la latence
+réellement mesurée. Cette distinction est nécessaire parce que les masques
+actuels annulent des coefficients sans réduire les dimensions des tenseurs
+denses. La mesure finale est effectuée sur CPU AMD Ryzen AI 9 365, sans CUDA,
+avec 10 threads PyTorch. Elle utilise $2\,048$ textes de test préencodés, des
+batches de 512, deux passages d'échauffement et la médiane de sept répétitions.
+La tokenisation est exclue de la latence bout en bout rapportée.
+
+Le run détaillé dans les figures repose sur la graine 42. Il est complété par
+le protocole de répétitions décrit ci-après afin de vérifier si les écarts
+observés survivent à la variabilité de l'optimisation et du calcul des scores.
+Deux limites restent néanmoins présentes : le batch de scoring OBD est
+constitué des 256 premiers exemples d'entraînement, et chaque score MINT repose
+sur une seule permutation. Un tirage explicite du batch OBD et la mise en commun
+de plusieurs partitions MINT permettraient une étude encore plus robuste.
+
+\subsection{Répétitions appariées et estimation de la variabilité}
+\label{ssec:methode_repetitions}
+
+L'expérience complète est répétée avec les cinq graines 42, 43, 44, 45 et 46.
+Le tokenizer, le backbone W1, les vecteurs agrégés et les partitions
+entraînement--validation--test restent strictement identiques. Pour chaque
+graine, les têtes M1 et M4 sont réinitialisées et réentraînées ; OBD répète
+également les tirages de Rademacher utilisés pour estimer la diagonale de la
+Hessienne, tandis que MINT répète le choix de l'ensemble de calibration et les
+partitions employées par son estimateur géométrique. Une même graine identifie
+donc un bloc apparié dans lequel toutes les méthodes voient les mêmes données
+et le même backbone.
+
+Pour chaque métrique $q$, les sorties conservent les cinq valeurs individuelles,
+leur moyenne $\bar q$, leur variance empirique non biaisée
+\begin{equation}
+    s_q^2=\frac{1}{n-1}\sum_{r=1}^{n}(q_r-\bar q)^2,
+    \qquad n=5,
+\end{equation}
+leur écart-type $s_q$ et un intervalle de confiance descriptif de la moyenne à
+$95\,\%$, calculé avec la loi de Student à $n-1$ degrés de liberté. Les mêmes
+statistiques sont calculées sur les différences graine par graine entre deux
+modèles. Cette comparaison appariée est plus informative que deux intervalles
+séparés, car elle retire une partie de la variabilité commune à la graine.
+
+Ce protocole mesure la variabilité algorithmique conditionnellement au corpus,
+au split et à W1. Il ne constitue ni une validation croisée, ni un rééchantillonnage
+du jeu de test : les intervalles obtenus ne doivent donc pas être interprétés
+comme l'incertitude totale de généralisation à une nouvelle population de
+textes.

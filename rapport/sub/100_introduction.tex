@@ -1,52 +1,44 @@
 % -*- coding: utf-8 -*-
 % !TEX root = ../main.tex
 
-\subsection{Nom de l'entreprise}\label{ssec:introduction_nom_entreprise} % TODO Mettre le nom de l'entreprise
+\subsection{Organisme et équipe d'accueil}
+\label{ssec:introduction_organisme}
 
-% TODO Présenter l'entreprise et ses objectifs
+Ce stage de recherche s'est déroulé au sein de l'École Nationale Supérieure d'Informatique pour l'Industrie et l'Entreprise (\textsc{ENSIIE}), et plus particulièrement dans les locaux du \textbf{C19}, l'incubateur d'entreprises et tiers-lieu d'innovation adossé à l'école. Cet environnement dédié à l'émergence de projets numériques et à l'émulation technologique a constitué un cadre propice pour mener des travaux expérimentaux et méthodologiques.
 
-% Exemple pour pour une image
-% Rappel | Formats acceptés par \includegraphics (défaut) : png, jpg, pdf...
-\begin{figure}[!h]
-    \centering
-    \includegraphics[width=0.7\textwidth]{example-image-a}
-    \caption{Photo du site}
-    \label{fig:photo_site}
-\end{figure}
+Le projet a été encadré par \textbf{M. Mounir Atiq}, chercheur au CEA et enseignant en analyse de données. L'activité de recherche s'est articulée autour de thématiques avancées en traitement automatique du langage naturel (\textit{Natural Language Processing} -- NLP), et plus précisément sur l'\textbf{analyse et la compression de sentiment de texte}. À l'heure où les modèles de langage de grande taille (\textit{Large Language Models} -- LLMs) et les architectures génératives transforment en profondeur l'état de l'art, les problématiques de représentations denses, d'efficacité algorithmique et de compression sémantique sont au cœur des défis scientifiques actuels.
 
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
+Ce stage s'inscrit pleinement dans la continuité de ma spécialisation en apprentissage automatique (\textit{Machine Learning}) et intelligence artificielle durant mon cursus d'ingénieur. Il constitue une première expérience concrète dans le domaine de la recherche académique, renforçant ma rigueur méthodologique et théorique en vue de mon intégration prochaine au sein du Master 2 Mathématiques, Vision, Apprentissage (MVA).
+\subsection{Contexte scientifique}
+\label{ssec:introduction_contexte_scientifique}
 
-\subsection{Service d'accueil}\label{ssec:introduction_service_accueil}
+La classification automatique de sentiments consiste à associer un texte à une
+catégorie, par exemple un sentiment positif ou négatif. Les modèles neuronaux
+utilisés pour cette tâche peuvent offrir de bonnes performances, mais leur coût
+en mémoire et en calcul limite leur utilisation sur des ressources contraintes.
+Ce travail étudie le compromis entre la qualité de prédiction et la complexité
+d'une tête de classification neuronale obtenue après élagage de ses poids.
 
-% TODO Présenter service/département de travail et son rôle dans entreprise
-% On pourra aussi préciser le matériel à notre disposition pour mener notre stage
+\subsection{Objectifs}
+\label{ssec:introduction_objectifs}
 
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
+L'objectif général est de construire un protocole reproductible permettant de :
+\begin{itemize}
+    \item entraîner un pipeline commun de représentation de textes et de
+    classification de sentiments ;
+    \item élaguer la tête de classification à l'aide de plusieurs méthodes de
+    scoring ;
+    \item mesurer la performance prédictive, la complexité mémoire et la
+    complexité de calcul des modèles obtenus ;
+    \item déterminer les modèles qui réalisent le meilleur compromis entre ces
+    critères.
+\end{itemize}
 
-\subsection{Contexte et problématique}\label{ssec:introduction_contexte_problematique}
+\subsection{Organisation du rapport}
+\label{ssec:introduction_organisation}
 
-% TODO Présenter le contexte du stage et identifier les problèmes rencontrés qui justifient la pertinence du stage
-
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-
-\subsection{Objectifs du stage}\label{ssec:introduction_objectifs}
-
-% TODO Présenter les objectifs du stage
-
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-%%%%%%%%%
-
-\subsection{Contributions principales}\label{ssec:introduction_contributions}
-
-% TODO Résumé des contributions majeures apportées
+Le cadre du travail est d'abord présenté, puis les motivations et l'état de
+l'art introduisent les méthodes de pruning étudiées. La
+\autoref{sec:formulation_probleme} définit les objets, les complexités et les
+critères d'évaluation. La méthodologie décrit ensuite le protocole expérimental,
+avant la présentation des résultats et des perspectives.

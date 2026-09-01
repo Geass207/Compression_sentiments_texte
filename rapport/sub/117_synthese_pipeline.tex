@@ -1,0 +1,110 @@
+% -*- coding: utf-8 -*-
+% !TEX root = ../main.tex
+
+La figure~\ref{fig:synthese_pipeline} résume la chaîne d'inférence principale.
+Le modèle Word2Vec est préentraîné avec l'objectif CBOW, puis figé. Lors de
+la classification, seule sa table d'embeddings d'entrée est utilisée pour
+associer un vecteur à chaque unité sous-lexicale. L'agrégateur transforme
+ensuite la séquence de longueur variable en un vecteur de taille fixe, qui est
+fourni à la tête de classification.
+
+\begin{figure}[!ht]
+    \centering
+    \resizebox{\textwidth}{!}{%
+        \begin{tikzpicture}[
+            node distance=7mm,
+            flow/.style={-{Latex[length=2.8mm]}, very thick, draw=black!70},
+            stage/.style={
+                draw=black!65,
+                rounded corners=2mm,
+                minimum height=24mm,
+                align=center,
+                font=\small,
+                inner xsep=4mm,
+                inner ysep=3mm
+            },
+            input/.style={stage, fill=gray!12, minimum width=22mm},
+            representation/.style={stage, fill=blue!9, minimum width=36mm},
+            aggregation/.style={stage, fill=orange!13, minimum width=38mm},
+            classifier/.style={stage, fill=green!11, minimum width=43mm},
+            output/.style={stage, fill=red!9, minimum width=35mm},
+            annotation/.style={
+                align=center,
+                font=\scriptsize,
+                text=black!75,
+                inner sep=1mm
+            }
+        ]
+
+        \node[input] (text) {
+            \textbf{Texte}\\[1mm]
+            $t$
+        };
+
+        \node[representation, right=of text] (bpe) {
+            \textbf{Tokenisation BPE}\\[1mm]
+            $(u_1,\ldots,u_n)$\\
+            $u_j\in\mathcal{V}$
+        };
+
+        \node[representation, right=of bpe] (cbow) {
+            \textbf{Embeddings CBOW}\\[1mm]
+            $E\in\mathbb{R}^{|\mathcal{V}|\times d}$\\
+            $\boldsymbol e_j=E[u_j]\in\mathbb{R}^{d}$
+        };
+
+        \node[aggregation, right=of cbow] (mean) {
+            \textbf{Agrégateur moyen}\\[1mm]
+            $\displaystyle
+             \boldsymbol x=\frac{1}{n}\sum_{j=1}^{n}\boldsymbol e_j$\\
+            $\boldsymbol x\in\mathbb{R}^{d}$
+        };
+
+        \node[classifier, right=of mean] (head) {
+            \textbf{Tête de classification}\\[1mm]
+            Linéaire $d\rightarrow h_1$ + ReLU\\
+            Linéaire $h_1\rightarrow h_2$ + ReLU\\
+            Linéaire $h_2\rightarrow1$
+        };
+
+        \node[output, right=of head] (decision) {
+            \textbf{Sortie binaire}\\[1mm]
+            $z\in\mathbb{R}$ : un logit\\
+            $\widehat p=\sigma(z)\in[0,1]$\\
+            $\widehat y=\mathbf{1}[\widehat p\geq0{,}5]\in\{0,1\}$
+        };
+
+        \draw[flow] (text) -- (bpe);
+        \draw[flow] (bpe) -- node[annotation, above] {$n$ unités} (cbow);
+        \draw[flow] (cbow) -- node[annotation, above]
+            {$n\times d$ valeurs} (mean);
+        \draw[flow] (mean) -- node[annotation, above]
+            {$\boldsymbol x\in\mathbb{R}^{d}$} (head);
+        \draw[flow] (head) -- node[annotation, above]
+            {un neurone de sortie} (decision);
+
+        \node[annotation, above=5mm of cbow] (offline) {
+            préentraînement CBOW hors ligne, puis paramètres figés
+        };
+        \draw[-{Latex[length=2mm]}, dashed, draw=black!55]
+            (offline) -- (cbow);
+
+        \end{tikzpicture}%
+    }
+    \caption{Synthèse du pipeline d'inférence pour la classification binaire.}
+    \label{fig:synthese_pipeline}
+\end{figure}
+
+Le vocabulaire BPE est noté $\mathcal{V}$, $n$ désigne le nombre d'unités du
+texte et $d$ la dimension d'un embedding. L'agrégation moyenne conserve cette
+dimension indépendamment de $n$ : elle transforme donc une matrice de
+$n\times d$ valeurs en un unique vecteur $\boldsymbol{x}\in\mathbb{R}^{d}$.
+Les symboles $h_1$ et $h_2$ désignent les largeurs des deux couches cachées de
+la tête. Leurs valeurs concrètes seront introduites dans la formulation du
+problème.
+
+La dernière couche ne produit pas deux scores, mais un unique logit
+$z\in\mathbb{R}$. Après application de la sigmoïde, ce logit devient la
+probabilité estimée de la classe positive. L'étiquette réelle est
+$y\in\{0,1\}$ et la prédiction associée est
+$\widehat y\in\{0,1\}$.

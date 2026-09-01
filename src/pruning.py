@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 import copy
+from time import perf_counter
 
 import numpy as np
 import torch
@@ -326,6 +327,7 @@ def iterative_prune_classifier_weights(
     pruning_step: float = 0.1,
     retraining_epochs: int = 3,
     batch_size: int = 256,
+    hessian_vectors: int = 10,
     lr: float = 1e-3,
     patience: int | None = None,
 ) -> tuple[
@@ -352,12 +354,21 @@ def iterative_prune_classifier_weights(
 
     while pruned_weights < target_pruned_weights:
         # 1. Recalculer un score pour chaque poids du modèle courant.
+        scoring_started = perf_counter()
         scores_by_layer = score_function(
             current_model,
             train_features,
             train_labels,
             batch_size=batch_size,
+            hessian_vectors=hessian_vectors,
         )
+        scoring_seconds = perf_counter() - scoring_started
+        initial_scores_by_layer = None
+        if not history:
+            initial_scores_by_layer = {
+                name: scores_by_layer[name].detach().cpu()
+                for name in weight_names
+            }
 
         # On aplatit temporairement toutes les couches pour faire un pruning
         # global. Les poids déjà supprimés reçoivent +inf et sont donc ignorés.
@@ -427,6 +438,8 @@ def iterative_prune_classifier_weights(
             {
                 "sparsity": pruned_weights / total_weights,
                 "pruned_scores": pruned_scores,
+                "scoring_seconds": scoring_seconds,
+                "initial_scores_by_layer": initial_scores_by_layer,
                 "validation_metrics_before_retraining": metrics_before,
                 "validation_metrics_after_retraining": metrics_after,
                 "retraining_history": retraining_history,
@@ -434,7 +447,8 @@ def iterative_prune_classifier_weights(
         )
         print(
             f"Pruning tête - sparsité: {pruned_weights / total_weights:.1%} "
-            f"- val_f1: {metrics_after['f1']:.4f}"
+            f"- val_f1: {metrics_after['f1']:.4f} "
+            f"- scoring: {scoring_seconds:.1f}s"
         )
 
     masks_on_cpu = {name: mask.cpu() for name, mask in masks.items()}
