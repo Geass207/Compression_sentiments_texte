@@ -232,6 +232,51 @@ $\mathbb{R}^{1\,025}$. Il faut plusieurs observations de ce triplet pour estimer
 la dépendance : les coordonnées sont des activations, tandis que les lignes
 représentent les textes de calibration.
 
+\subsubsection{Du test à deux échantillons à l'indépendance conditionnelle}
+
+La construction de l'estimateur se comprend d'abord comme un problème de
+comparaison de deux distributions. Le \emph{Classifier Two-Sample Test}
+(C2ST) fournit une intuition simple de ce principe
+\cite{lopezpaz2017c2st}. Soient deux échantillons équilibrés
+$S_P=\{U_r^P\}_{r=1}^{m}\sim P$ et
+$S_Q=\{U_r^Q\}_{r=1}^{m}\sim Q$. Les observations de $S_P$ reçoivent le
+label 1 et celles de $S_Q$ le label 0, puis l'ensemble
+\begin{equation}
+    \mathcal{D}
+    =\{(U_r^P,1)\}_{r=1}^{m}
+     \cup\{(U_r^Q,0)\}_{r=1}^{m}
+\end{equation}
+est séparé en un jeu d'entraînement et un jeu de test. Un classifieur binaire
+$h:\mathcal{U}\rightarrow[0,1]$ est appris sur le premier jeu et son accuracy
+sur des observations tenues à l'écart est mesurée par
+\begin{equation}
+    \widehat{t}
+    =\frac{1}{|\mathcal{D}_{\mathrm{te}}|}
+      \sum_{(u,c)\in\mathcal{D}_{\mathrm{te}}}
+      \mathbf{1}\!\left[
+        \mathbf{1}\!\left[h(u)>\frac{1}{2}\right]=c
+      \right].
+    \label{eq:c2st_accuracy}
+\end{equation}
+Si $P=Q$, le label de population n'est pas prédictible à partir de $u$ et
+$\widehat{t}$ doit rester proche de $1/2$. Si $P\neq Q$ et si le classifieur
+dispose d'une capacité suffisante, une accuracy supérieure au hasard révèle
+que les deux populations sont séparables. Réciproquement, une accuracy proche
+de $1/2$ ne prouve pas à elle seule l'égalité : elle conduit seulement à ne pas
+rejeter cette hypothèse pour le classifieur et l'échantillon considérés. La
+séparation entraînement--test est indispensable pour que la mémorisation ne
+soit pas confondue avec une différence de distributions.
+
+Pour tester l'indépendance ordinaire entre $X$ et $Y$, on compare la loi jointe
+$P=P_{XY}$ à la loi produit $Q=P_XP_Y$. À partir des paires observées
+$\{(X_r,Y_r)\}_{r=1}^{m}$, une permutation aléatoire $\pi$ des coordonnées
+$Y$ fournit l'échantillon artificiel
+$\{(X_r,Y_{\pi(r)})\}_{r=1}^{m}$ : l'association entre $X$ et $Y$ est cassée
+tout en conservant leurs distributions marginales. Cette permutation globale
+ne convient plus pour l'indépendance conditionnelle, car elle détruirait aussi
+la relation entre $Y$ et $Z$. Il faut donc construire une population où $X$ et
+$Y$ sont dissociés \emph{à $Z$ fixé}, au moins approximativement.
+
 La GMI n'est pas l'information mutuelle de Shannon. Elle est reliée à une
 divergence de Henze--Penrose et permet une estimation géométrique sans estimer
 explicitement des densités en grande dimension \cite{yasaei2019gmi}. La
@@ -246,6 +291,13 @@ construction compare deux distributions définies sur les mêmes triplets :
 $P$ est la distribution réelle des activations. $Q$ est la distribution qui
 serait obtenue si $X$ et $Y$ étaient rendus indépendants conditionnellement à
 $Z$. Ainsi, $X\perp\!\!\!\perp Y\mid Z$ implique $P=Q$.
+
+MINT conserve cette réduction à une comparaison entre $P$ et $Q$, mais
+n'entraîne pas le classifieur du C2ST. L'accuracy de
+l'\autoref{eq:c2st_accuracy} est remplacée par une statistique géométrique
+calculée sur un arbre couvrant minimal. Le C2ST explique donc pourquoi rendre
+les deux populations discernables mesure une dépendance ; le MST fournit le
+score effectivement employé pour classer les blocs de poids.
 
 \subsubsection{Population artificielle par bootstrap conditionnel}
 
@@ -281,6 +333,18 @@ Le point synthétique conserve $(X_r,Z_r)$ mais emprunte $Y$ au donneur :
 La population
 $\mathcal{Q}=\{\widetilde{U}_r:r\in I_S\}$ approxime ainsi la distribution
 conditionnellement indépendante de l'\autoref{eq:distributions_mint_pq}.
+Intuitivement, $(X_r,Z_r)$ apporte un tirage suivant
+$f_Z(z)f_{X\mid Z}(x\mid z)$, tandis que le donneur proche de $Z_r$ fournit un
+$Y$ approximativement distribué selon $f_{Y\mid Z}(y\mid z)$. Les ensembles
+source et donneur sont disjoints pour ne pas recopier la paire réelle
+$(X_r,Y_r)$.
+
+À taille finie, la population générée n'est qu'une approximation. Sa qualité
+dépend du volume de données et de la possibilité de trouver un donneur proche
+dans l'espace de conditionnement. Lorsque $Z$ est très dimensionnel, les
+distances entre voisins deviennent moins discriminantes. Cette limite est
+particulièrement importante ici, puisque $Z$ peut contenir plusieurs centaines
+d'activations.
 
 \subsubsection{Estimateur géométrique par arbre couvrant minimal}
 
@@ -288,7 +352,17 @@ Les $m$ points réels et les $m$ points synthétiques sont fusionnés. Un arbre
 couvrant minimal euclidien est construit sur ces $2m$ points, puis la
 statistique de Friedman--Rafsky compte le nombre $R_m$ d'arêtes reliant une
 observation réelle à une observation synthétique
-\cite{friedman1979multivariate}. Pour deux populations de même taille,
+\cite{friedman1979multivariate}. Plus précisément, si $T$ désigne le MST et
+$c_r\in\{0,1\}$ le label de population attaché au sommet $r$, alors
+\begin{equation}
+    R_m
+    =\sum_{\{r,s\}\in E(T)}
+      \mathbf{1}\!\left[c_r\neq c_s\right].
+    \label{eq:friedman_rafsky_mint}
+\end{equation}
+Les labels ne sont pas des coordonnées du MST : ils servent uniquement à
+compter, après sa construction, les arêtes qui changent de population. Pour
+deux populations de même taille,
 l'estimateur utilisé par MINT se simplifie en
 \begin{equation}
     \widehat{I}_{\mathrm{G}}(X;Y\mid Z)
@@ -308,6 +382,16 @@ le score est faible. Le remplacement de $Y$ modifie alors peu la distribution,
 ce qui indique une contribution conditionnelle limitée. Si les deux
 populations sont au contraire séparées, $R_m$ est faible et le score est élevé :
 le groupe $Y$ contribue de manière importante à l'activation aval.
+Le comportement attendu sous l'indépendance se résume donc par
+\begin{equation}
+    X\perp\!\!\!\perp Y\mid Z
+    \quad\Longrightarrow\quad
+    P=Q
+    \quad\Longrightarrow\quad
+    R_m\simeq m
+    \quad\Longrightarrow\quad
+    \widehat{I}_{\mathrm{G}}\simeq0.
+\end{equation}
 
 \subsubsection{Passage des scores aux blocs de poids}
 
@@ -395,6 +479,42 @@ chaque mise à jour. Le modèle obtenu constitue MINT-M3.
     \caption{Configuration actuelle du pruning MINT.}
     \label{tab:hyperparametres_mint}
 \end{table}
+
+\subsection{Témoin de pruning aléatoire}
+\label{ssec:methode_random}
+
+Nous ajoutons un pruning aléatoire comme point de comparaison. Il permet de
+vérifier si OBD choisit vraiment des poids plus utiles qu'un simple tirage au
+hasard. Pour une tête contenant $P_H$ poids éligibles et une sparsité cible
+$\tau_H$, le nombre de poids supprimés est
+\begin{equation}
+    K_H=\operatorname{round}(P_H\tau_H).
+    \label{eq:nombre_poids_random}
+\end{equation}
+Les matrices de poids sont d'abord aplaties dans un ordre fixe. Nous tirons
+ensuite une permutation aléatoire uniforme $\pi$ de
+$\{1,\ldots,P_H\}$. Le masque annule les indices
+$\pi(1),\ldots,\pi(K_H)$. Tous les groupes de $K_H$ poids ont donc la même
+chance d'être choisis. Ce tirage n'utilise ni les poids, ni les gradients, ni
+les activations, ni les labels. Comme pour OBD, les biais et le backbone
+Word2Vec ne sont pas prunés.
+
+Pour comparer correctement cette méthode à OBD, nous gardons le même
+calendrier. À chaque étape, le script supprime au plus $10\,\%$ des poids
+initiaux, puis réentraîne les poids actifs pendant trois époques. H1 demande six
+étapes, car la dernière ne supprime que deux poids à cause des arrondis. H2 en
+demande cinq. RAND-M2 est le modèle obtenu juste après la dernière suppression,
+avant le dernier réentraînement. Comme OBD-M2, il a déjà été réentraîné lors des
+étapes précédentes. RAND-M3 est le modèle obtenu après le dernier
+réentraînement.
+
+L'expérience utilise les graines 42 à 46. Pour chaque graine, nous reconstruisons
+M1 avec la même initialisation et le même ordre des mini-batches que dans les
+expériences précédentes. Nous retrouvons exactement les mêmes métriques. Le
+masque utilise une autre graine, obtenue en ajoutant $60\,000$ à la graine
+principale. La sparsité finale est de $50\,\%$ pour H1 et de
+$49{,}973\,\%$ pour H2. Le nombre de poids actifs est donc le même que pour
+OBD.
 
 \subsection{Protocole d'évaluation et précautions expérimentales}
 \label{ssec:methode_evaluation}

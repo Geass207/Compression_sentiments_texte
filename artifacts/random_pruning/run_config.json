@@ -1,0 +1,28 @@
+{
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "heads": [
+    "H1",
+    "H2"
+  ],
+  "fixed_word2vec": "W1",
+  "fixed_data_splits": true,
+  "device": "cpu",
+  "selection": "uniform_without_replacement_over_all_head_weights",
+  "mask_seed_offset": 60000,
+  "retraining_seed_offset": 70000,
+  "initial_epochs": 30,
+  "classifier_batch_size": 256,
+  "classifier_learning_rate": 0.001,
+  "classifier_patience_for_m1": 4,
+  "pruning_step": 0.1,
+  "retraining_epochs_per_step": 3,
+  "retraining_patience": null,
+  "biases_pruned": false,
+  "word2vec_pruned": false
+}

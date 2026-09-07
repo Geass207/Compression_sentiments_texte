@@ -502,6 +502,50 @@ demande environ $13{,}08\,\mu$s par texte dans ce protocole, quel que soit le
 classifieur. Une forte réduction du temps de la tête devient donc une réduction
 plus modeste du temps bout en bout.
 
+\subsection{Comparaison au pruning aléatoire}
+\label{ssec:resultats_random}
+
+Le pruning aléatoire est répété avec les cinq mêmes graines que les autres
+méthodes. Il utilise aussi la même sparsité et le même calendrier qu'OBD. Le
+tableau~\ref{tab:resultats_random} présente les résultats avant et après le
+dernier réentraînement.
+
+\begin{table}[!htbp]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{|l|l|c|c|c|c|}
+        \hline
+        Tête & Modèle & Loss & Accuracy & F1 & ROC-AUC \\ \hline
+        H1 & M1 & $0{,}5400\pm0{,}0044$ & $73{,}15\pm0{,}39\,\%$ & $0{,}7456\pm0{,}0048$ & $0{,}8045\pm0{,}0040$ \\ \hline
+        H1 & RAND-M2 & $0{,}5487\pm0{,}0030$ & $72{,}00\pm0{,}40\,\%$ & $0{,}7308\pm0{,}0108$ & $0{,}7971\pm0{,}0032$ \\ \hline
+        H1 & RAND-M3 & $0{,}5440\pm0{,}0034$ & $72{,}48\pm0{,}31\,\%$ & $0{,}7335\pm0{,}0057$ & $0{,}8006\pm0{,}0039$ \\ \hline
+        H2 & M1 & $0{,}5486\pm0{,}0063$ & $72{,}73\pm0{,}61\,\%$ & $0{,}7321\pm0{,}0082$ & $0{,}8009\pm0{,}0035$ \\ \hline
+        H2 & RAND-M2 & $0{,}5872\pm0{,}0178$ & $69{,}38\pm3{,}19\,\%$ & $0{,}6467\pm0{,}0743$ & $0{,}7880\pm0{,}0066$ \\ \hline
+        H2 & RAND-M3 & $0{,}5433\pm0{,}0046$ & $72{,}70\pm0{,}45\,\%$ & $0{,}7323\pm0{,}0139$ & $0{,}8020\pm0{,}0032$ \\ \hline
+    \end{tabular}}
+    \caption{Métriques de test du témoin aléatoire sur cinq graines. Chaque
+    valeur est la moyenne $\pm$ l'écart-type empirique. RAND-M2 et RAND-M3 ont
+    exactement la sparsité et le nombre de poids actifs de leurs homologues
+    OBD.}
+    \label{tab:resultats_random}
+\end{table}
+
+Sur H1, RAND-M3 obtient un F1 de $0{,}7335$, contre $0{,}7456$ pour M1 et
+$0{,}7512$ pour OBD-M3. La comparaison graine par graine confirme l'écart entre
+OBD-M3 et RAND-M3 : l'intervalle à $95\,\%$ ne contient pas zéro. Sur H1, OBD
+choisit donc de meilleurs poids qu'un tirage au hasard.
+
+Sur H2, le masque aléatoire fait d'abord fortement baisser le F1 : RAND-M2
+obtient $0{,}6467$. Après le dernier réentraînement, RAND-M3 remonte à
+$0{,}7323$, presque au même niveau que M1 ($0{,}7321$). OBD-M3 et MINT-M3 ont
+des moyennes un peu plus élevées, mais les écarts avec RAND-M3 ne sont pas assez
+clairs avec seulement cinq graines. Sur H2, le réentraînement semble donc plus
+important que la manière de choisir le masque.
+
+La comparaison avec OBD est directe, car OBD et RAND suivent le même protocole.
+MINT utilise des blocs et un pruning en une seule passe ; ses résultats avant
+réentraînement ne sont donc pas directement comparables à ceux de RAND-M2.
+
 \subsection{Robustesse sur cinq graines}
 \label{ssec:resultats_repetitions}
 
@@ -566,7 +610,7 @@ deux modèles de tête pour le score ajusté contient zéro dans chaque cas.
 \subsection{Réponses aux questions expérimentales et limites}
 \label{ssec:resultats_reponses_limites}
 
-Les cinq questions de la \autoref{ssec:probleme_questions} reçoivent les
+Les six questions de la \autoref{ssec:probleme_questions} reçoivent les
 réponses suivantes. OBD peut retirer environ la moitié des poids sans perte de
 F1 sur le test ; MINT provoque en revanche une perte immédiate majeure. Le
 réentraînement récupère entièrement cette perte pour MINT, mais n'améliore pas
@@ -576,9 +620,12 @@ pas en gains physiques dans le format dense ; M4 constitue la seule compression
 immédiatement exploitable. Enfin, le scoring MINT est deux ordres de grandeur
 plus lent que celui d'OBD dans cette configuration.
 
+Le témoin aléatoire montre qu'OBD fait mieux sur H1. Sur H2, les cinq graines ne
+suffisent pas pour montrer qu'OBD ou MINT fait mieux que RAND-M3.
+
 Les répétitions tempèrent cependant le classement du run détaillé. Avec cinq
-graines, aucun gain apparié de F1 ou d'accuracy des modèles finaux n'a un
-intervalle à $95\,\%$ excluant zéro. Le split
+graines, aucun gain apparié de F1 ou d'accuracy des modèles informés par rapport
+à M1 n'a un intervalle à $95\,\%$ excluant zéro. Le split
 et W1 restent fixes : les intervalles mesurent uniquement la variabilité
 algorithmique et leur faible effectif ne permet pas une comparaison
 statistique définitive. Le batch OBD est toujours constitué des 256 premiers

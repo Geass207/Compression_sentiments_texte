@@ -31,3 +31,19 @@ Les principaux fichiers produits sont :
 
 Chaque sous-répertoire de graine conserve en outre les métriques brutes, la
 trajectoire de pruning OBD et les temps de scoring MINT par couche.
+
+\subsection{Exécution du témoin aléatoire}
+
+Le témoin aléatoire est lancé séparément depuis la racine du projet :
+\begin{verbatim}
+.venv/bin/python scripts/09_random_pruning.py
+\end{verbatim}
+Le script utilise par défaut les graines 42 à 46 et les têtes H1 et H2. Pour
+chaque graine, il reconstruit M1, tire un masque aléatoire, puis applique le
+même calendrier itératif et le même budget de réentraînement qu'OBD. Les
+résultats sont isolés dans \path{artifacts/random_pruning/}. Ce répertoire
+contient les métriques individuelles et agrégées, les différences appariées,
+les trajectoires, les historiques d'entraînement, la configuration du run et
+les checkpoints RAND-M2/RAND-M3 avec leurs masques. Les graines terminées sont
+ignorées lors d'une reprise ; l'option \texttt{--rerun-completed} force leur
+recalcul.

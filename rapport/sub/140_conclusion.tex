@@ -9,10 +9,11 @@ classification, mémoire et calcul lors de la compression d'une tête de
 classification de sentiments. Un pipeline reproductible a été construit autour
 d'un tokenizer BPE, d'un backbone CBOW figé et de deux têtes neuronales. Cette
 séparation a permis de modifier uniquement le classifieur tout en conservant
-exactement les mêmes représentations d'entrée. Deux critères de pruning ont été
-comparés : OBD, fondé sur une approximation diagonale de la Hessienne de la
-loss, et MINT, fondé sur une estimation géométrique de l'information mutuelle
-conditionnelle entre activations.
+exactement les mêmes représentations d'entrée. Deux critères de pruning et un
+témoin aléatoire ont été comparés : OBD, fondé sur une approximation diagonale
+de la Hessienne de la loss ; MINT, fondé sur une estimation géométrique de
+l'information mutuelle conditionnelle entre activations ; et un masque tiré
+uniformément sans utiliser les poids, les activations ou les labels.
 
 Les expériences montrent qu'une cible proche de $50\,\%$ de poids supprimés est
 compatible avec le maintien de la performance finale. Sur cinq graines,
@@ -28,6 +29,14 @@ distingue par une forte fragilité immédiate : avant
 réentraînement, son F1 moyen tombe à $0{,}2028\pm0{,}0938$. OBD produit un
 masque directement plus stable et son scoring est environ 163 fois plus rapide
 que celui de MINT sur H2.
+
+Le témoin aléatoire apporte une information utile. Sur H1, OBD-M3 dépasse
+RAND-M3 de $0{,}0177$ de F1 moyen et l'intervalle apparié à $95\,\%$ ne contient
+pas zéro. OBD choisit donc de meilleurs poids qu'un tirage au hasard sur cette
+tête. Sur H2, RAND-M3 atteint $0{,}7323\pm0{,}0139$, contre
+$0{,}7371\pm0{,}0068$ pour OBD-M3 et $0{,}7430\pm0{,}0101$ pour MINT-M3. Les
+intervalles des deux écarts contiennent zéro. Ces résultats ne permettent donc
+pas de dire qu'OBD ou MINT choisit un meilleur sous-réseau sur H2.
 
 La conclusion la plus importante concerne la différence entre sparsité et
 compression déployable. Les masques divisent par deux le nombre idéal de
@@ -59,7 +68,8 @@ plus proche voisin et statistique de Friedman--Rafsky sur un arbre couvrant
 minimal. Leur comparaison a aussi montré qu'une méthode plus riche
 conceptuellement n'est pas automatiquement plus efficace : le coût de scoring,
 la sensibilité au masque et le besoin de réentraînement font partie intégrante
-du bilan.
+du bilan. Le témoin aléatoire permet aussi de séparer la qualité du score de la
+capacité du réseau à récupérer après le pruning.
 
 Enfin, la construction d'un pipeline unique, appuyé sur une configuration
 centralisée et des artefacts archivés, a renforcé la reproductibilité du
@@ -100,7 +110,8 @@ sur l'information de Fisher ou sur une approximation tenant compte des termes
 hors diagonale de la Hessienne. Des critères directement définis sur des
 neurones ou des blocs seraient également cohérents avec l'objectif d'obtenir
 une architecture physiquement compacte. La comparaison devrait conserver la
-même sparsité cible, le même budget de réentraînement et les mêmes graines.
+même sparsité cible, le même budget de réentraînement et les mêmes graines, à
+l'image du contrôle aléatoire désormais inclus.
 
 Une autre limite importante se situe avant la tête de classification. Le
 pipeline représente actuellement un texte par la moyenne des embeddings de ses
